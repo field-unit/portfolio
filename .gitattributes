@@ -1,0 +1,4 @@
+# The build writes these with newlines as LF; keep them that way here and on disk.
+* text=auto eol=lf
+*.webp binary
+*.jpg binary

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://jamesmasondesign.com/sitemap.xml

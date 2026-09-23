@@ -308,6 +308,49 @@ body:not(.no-3d) #desk-view { display: none; }
 .links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .links a { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.8rem; border: 1px solid var(--line-2); border-radius: 3px; font: var(--label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; }
 .links a:hover { border-color: var(--ink); color: var(--ink); }
+/* The contact form on the CV page (only once a form endpoint is set): plain fields in the page's type. */
+.cform { display: grid; gap: 0.9rem; max-width: 34rem; margin-top: 1.1rem; }
+.cform__field { display: grid; gap: 0.35rem; font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.cform input, .cform textarea { width: 100%; padding: 0.6rem 0.7rem; border: 1px solid var(--line-2); border-radius: 3px; background: #fff; color: var(--ink); font: 400 1rem/1.5 var(--mono); letter-spacing: 0; text-transform: none; }
+.cform textarea { resize: vertical; min-height: 8rem; }
+.cform input:focus, .cform textarea:focus { border-color: var(--ink); outline: none; }
+.cform__trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.cform__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; }
+.cform button:disabled { opacity: 0.6; cursor: wait; }
+.cform__status { font: 400 0.76rem/1.6 var(--mono); color: var(--ink-2); }
+.cform__note { font: 400 0.72rem/1.6 var(--mono); color: var(--muted); }
+
+/* Technical drawings ("sheets"): one to a sheet, on white with room round it, the title and a line on what kind of
+   drawing it is beneath. Click or tap to enlarge. */
+.sheets { display: grid; gap: 1.4rem; margin-top: 1.6rem; }
+.sheet { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+.sheet__open { position: relative; display: block; width: 100%; padding: clamp(0.8rem, 2.6vw, 2rem); border: 0; background: #fff; cursor: zoom-in; }
+.sheet__open img { display: block; width: 100%; height: auto; max-height: 72vh; object-fit: contain; }
+.sheet__zoom { position: absolute; right: 0.7rem; bottom: 0.7rem; padding: 0.3rem 0.6rem; border: 1px solid var(--line-2); border-radius: 3px; background: rgba(255, 255, 255, 0.94); font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); opacity: 0; transition: opacity 0.2s; }
+.sheet__open:hover .sheet__zoom, .sheet__open:focus-visible .sheet__zoom { opacity: 1; }
+@media (hover: none) { .sheet__zoom { opacity: 1; } }
+.sheet figcaption { display: grid; gap: 0.25rem; padding: 0.75rem 1rem 0.85rem; border-top: 1px solid var(--line); }
+.sheet__title { font: 500 0.74rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink); }
+.sheet__caption { max-width: 72ch; font: 400 0.76rem/1.65 var(--mono); color: var(--ink-2); }
+
+/* The enlarged drawing, over everything: a thin bar of controls and the sheet itself, zoomable and pannable. */
+.viewer { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(24, 26, 23, 0.97); color: #eef0e8; animation: viewer-in 0.18s ease-out; }
+.viewer[hidden] { display: none; }
+@keyframes viewer-in { from { opacity: 0; } }
+.viewer__bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; padding: 0.6rem clamp(0.75rem, 2vw, 1.4rem); border-bottom: 1px solid rgba(255, 255, 255, 0.12); background: #181a17; }
+.viewer__text { min-width: 0; }
+.viewer__title { font: 500 0.74rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.viewer__caption { max-width: 80ch; margin-top: 0.15rem; font: 400 0.72rem/1.5 var(--mono); color: #b9beb1; }
+.viewer__tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.viewer__count { margin-right: 0.4rem; font: 400 0.7rem/1 var(--mono); color: #b9beb1; }
+.viewer__btn { min-width: 2.3rem; height: 2.3rem; padding: 0 0.55rem; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 3px; background: transparent; color: #eef0e8; font: 500 0.8rem/1 var(--mono); letter-spacing: 0.06em; }
+.viewer__btn:hover { border-color: #fff; }
+.viewer :focus-visible { outline-color: #fff; }
+.viewer__stage { position: relative; overflow: hidden; touch-action: none; cursor: grab; }
+.viewer__stage:active { cursor: grabbing; }
+.viewer__img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); user-select: none; -webkit-user-drag: none; }
+html.viewing { overflow: hidden; }
+
 .next { display: flex; justify-content: flex-end; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 .next a { text-align: right; font: 500 0.86rem/1.4 var(--mono); letter-spacing: 0.03em; text-transform: uppercase; text-decoration: none; }
 .next a span { display: block; font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
@@ -388,7 +431,9 @@ body:not(.no-3d) #desk-view { display: none; }
   @page { margin: 16mm; }
   body { background: #fff; color: #000; }
   .skip, .utilities, .readbar, .deck, .title, .projection__pause, .footrule, .tags, .hud, .pcmenu,
-  .gallery__bar, .next, .shelfnav, .plist, .folio__head .textlink, .printlink { display: none !important; }
+  .gallery__bar, .next, .shelfnav, .plist, .folio__head .textlink, .printlink, .viewer, .sheet__zoom, .action { display: none !important; }
+  .sheet { box-shadow: none; border-color: #ddd; }
+  .sheet__open img { max-height: 16cm; }
   .folio__body { display: block; }          /* without the project list beside it, the story takes the page */
   /* the words behind the dot-matrix heading take its place */
   .visually-hidden { position: static; width: auto; height: auto; clip-path: none; font: 600 1.4rem/1.3 var(--sans); }
@@ -1142,6 +1187,167 @@ body:not(.no-3d) #desk-view { display: none; }
       return g;
     }
 
+    // Technical planning: a drawing sheet half unrolled on the board, its far end still in a roll, with a
+    // small patch box sitting on it and a coiled microphone cable, one plug in the box and the other loose. The
+    // sheet's linework is drawn here, generically: a plan with colour-coded loudspeakers, cable runs back to a
+    // rack, numbered callouts and a small schematic, not any real drawing. Pointed at, the roll gives a little
+    // more of the sheet and the loose plug lifts.
+    function plans() {
+      const g = new THREE.Group();
+      const W = 1.0, D = 0.76, GIVE = 0.1;             // the flat part of the sheet, and how much the roll gives
+      const ink = "#33332f", teal = "#16807a", blue = "#2442d6", grey = "#8a8a84";
+      // The sheet's frame: its sides and foot (the head is still in the roll).
+      const frame = (c, w, h, foot) => {
+        c.strokeStyle = ink;
+        c.lineWidth = 3;
+        c.beginPath(); c.moveTo(20, 0); c.lineTo(20, foot ? h - 20 : h); if (foot) c.lineTo(w - 20, h - 20); c.lineTo(w - 20, 0); c.stroke();
+        c.lineWidth = 1.2;
+        c.beginPath(); c.moveTo(36, 0); c.lineTo(36, foot ? h - 36 : h); if (foot) c.lineTo(w - 36, h - 36); c.lineTo(w - 36, 0); c.stroke();
+      };
+      const sheetTex = canvasTexture(1024, 780, (c, w, h) => {
+        c.fillStyle = "#f7f6f1";
+        c.fillRect(0, 0, w, h);
+        frame(c, w, h, true);
+        // the plan: walls, a partition with a doorway, a stair
+        c.lineWidth = 8;
+        c.strokeRect(90, 150, 600, 470);
+        c.lineWidth = 5;
+        c.beginPath();
+        c.moveTo(450, 150); c.lineTo(450, 330);
+        c.moveTo(450, 400); c.lineTo(450, 620);
+        c.stroke();
+        c.lineWidth = 1.6;
+        for (let i = 0; i < 10; i++) { c.beginPath(); c.moveTo(490 + i * 17, 500); c.lineTo(490 + i * 17, 610); c.stroke(); }
+        // loudspeakers: subwoofers as squares with rays, full-range units as trapezoids, each aimed
+        const sub = (x, y) => {
+          c.fillStyle = c.strokeStyle = teal;
+          c.fillRect(x - 17, y - 13, 34, 26);
+          c.lineWidth = 2.4;
+          for (let a = 0; a < 8; a++) {
+            const t = (a * Math.PI) / 4;
+            c.beginPath(); c.moveTo(x + Math.cos(t) * 21, y + Math.sin(t) * 17); c.lineTo(x + Math.cos(t) * 36, y + Math.sin(t) * 30); c.stroke();
+          }
+        };
+        const top = (x, y, r) => {
+          c.save(); c.translate(x, y); c.rotate(r);
+          c.fillStyle = blue;
+          c.beginPath(); c.moveTo(-16, -11); c.lineTo(16, -11); c.lineTo(10, 13); c.lineTo(-10, 13); c.closePath(); c.fill();
+          c.restore();
+        };
+        const runs = [[180, 260], [180, 510], [600, 250], [650, 430]];
+        c.strokeStyle = grey;
+        c.lineWidth = 2.2;
+        runs.forEach(([x, y]) => { c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo((x + 820) / 2, y + 150, 820, 600); c.stroke(); });
+        sub(180, 260); sub(180, 510); sub(600, 250);
+        top(125, 185, -0.7); top(125, 585, 0.7); top(415, 185, 0.7); top(415, 585, -0.7); top(650, 430, Math.PI / 2);
+        // the rack the runs come back to
+        c.fillStyle = "#4b4b46";
+        c.fillRect(800, 585, 60, 34);
+        // numbered callouts on leaders
+        c.font = "600 22px monospace";
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        [[1, 180, 260, 110, 330], [2, 180, 510, 110, 440], [3, 600, 250, 640, 105], [4, 650, 430, 760, 360]].forEach(([n, x, y, cx, cy]) => {
+          c.strokeStyle = ink; c.lineWidth = 1.6;
+          c.beginPath(); c.moveTo(x, y); c.lineTo(cx, cy); c.stroke();
+          c.fillStyle = "#f7f6f1"; c.beginPath(); c.arc(cx, cy, 17, 0, Math.PI * 2); c.fill(); c.stroke();
+          c.fillStyle = ink; c.fillText(String(n), cx, cy + 1);
+        });
+        // a little schematic in the corner: a processor feeding two amplifiers
+        c.strokeStyle = blue; c.lineWidth = 2;
+        c.strokeRect(760, 120, 170, 26);
+        c.strokeRect(740, 220, 90, 22); c.strokeRect(860, 220, 90, 22);
+        c.beginPath(); c.moveTo(800, 146); c.lineTo(800, 180); c.lineTo(785, 180); c.lineTo(785, 220);
+        c.moveTo(890, 146); c.lineTo(890, 180); c.lineTo(905, 180); c.lineTo(905, 220); c.stroke();
+        [760, 800, 880, 920].forEach((x) => { c.beginPath(); c.moveTo(x, 242); c.lineTo(x, 280); c.stroke(); c.strokeRect(x - 16, 280, 32, 20); });
+      });
+      sheetTex.anisotropy = 8;
+      const frontZ = 0.42, rollZ = frontZ - D;
+      const sheetGeo = new THREE.PlaneGeometry(W, D);
+      sheetGeo.rotateX(-Math.PI / 2);
+      mesh(sheetGeo, mat("#f7f6f1", 0.92, 0, { map: sheetTex }), 0, 0.003, frontZ - D / 2, g).castShadow = false;
+      // What the roll gives when pointed at: more of the same paper, growing out from under it.
+      const moreGeo = new THREE.PlaneGeometry(W, GIVE);
+      moreGeo.rotateX(-Math.PI / 2);
+      moreGeo.translate(0, 0, -GIVE / 2);
+      const moreTex = canvasTexture(1024, 80, (c, w, h) => { c.fillStyle = "#f7f6f1"; c.fillRect(0, 0, w, h); frame(c, w, h, false); });
+      const more = mesh(moreGeo, mat("#f7f6f1", 0.92, 0, { map: moreTex }), 0, 0.003, rollZ, g);
+      more.castShadow = false;
+      more.scale.z = 0.001;
+      // the roll: the back of the paper, plain, sitting on the sheet's head
+      const rollR = 0.052;
+      const roll = new THREE.Group();
+      const tube = new THREE.CylinderGeometry(rollR, rollR, W, 32);
+      tube.rotateZ(Math.PI / 2);
+      mesh(tube, mat("#efece3", 0.9), 0, 0, 0, roll);
+      [-1, 1].forEach((s) => {
+        // the ends show the paper wound on itself
+        const end = new THREE.RingGeometry(rollR * 0.35, rollR, 32);
+        end.rotateY((s * Math.PI) / 2);
+        mesh(end, mat("#e2ded2", 0.95, 0, { side: THREE.DoubleSide }), (s * W) / 2 + s * 0.001, 0, 0, roll);
+      });
+      roll.position.set(0, rollR + 0.003, rollZ);
+      g.add(roll);
+      // the patch box: dark steel, four XLR sockets and a label strip, standing on the sheet
+      const box3 = new THREE.Group();
+      const steel = mat("#3b3d40", 0.45, 0.6), socket = mat("#1f2022", 0.4, 0.5), hole = mat("#0d0d0e", 0.9);
+      mesh(box(0.32, 0.13, 0.15), steel, 0, 0, 0, box3);
+      mesh(box(0.28, 0.018, 0.004), mat("#e9e6dc", 0.8), 0, 0.098, 0.076, box3);
+      const sockets = [];
+      for (let i = 0; i < 4; i++) {
+        const x = -0.105 + i * 0.07;
+        const s = mesh(disc(0.024, 0.006), socket, x, 0.052, 0.075, box3);
+        mesh(disc(0.017, 0.002), hole, x, 0.052, 0.081, box3);
+        for (let p = 0; p < 3; p++) {
+          const a = Math.PI / 2 + (p * Math.PI * 2) / 3;
+          mesh(disc(0.003, 0.0015), mat("#b8b8b2", 0.3, 0.9), x + Math.cos(a) * 0.008, 0.052 + Math.sin(a) * 0.008, 0.083, box3);
+        }
+        sockets.push({ x, y: 0.052, z: 0.083, s });
+      }
+      box3.position.set(-0.3, 0.004, -0.13);
+      box3.rotation.y = 0.12;
+      g.add(box3);
+      // the cable: out of the first socket, down to the board, three loose turns, and a loose plug on the sheet
+      const rubber = mat("#1b1b1a", 0.75, 0.05), metal = mat("#c9cbc5", 0.28, 0.9);
+      const at = (v) => v.applyMatrix4(box3.matrixWorld);
+      box3.updateMatrixWorld(true);
+      const out = at(new THREE.Vector3(sockets[0].x, sockets[0].y, sockets[0].z + 0.11));
+      const pts = [out, at(new THREE.Vector3(sockets[0].x, 0.03, sockets[0].z + 0.2)), new THREE.Vector3(-0.05, 0.014, 0.17)];
+      const cx = 0.22, cz = 0.2;
+      for (let k = 0; k <= 30; k++) {
+        const t = k / 30, a = Math.PI * 0.9 + t * Math.PI * 2 * 2.6;
+        const r = 0.12 + 0.012 * Math.sin(t * 9);
+        pts.push(new THREE.Vector3(cx + Math.cos(a) * r, 0.014 + 0.012 * t, cz + Math.sin(a) * r * 0.85));
+      }
+      pts.push(new THREE.Vector3(0.08, 0.014, 0.33), new THREE.Vector3(-0.08, 0.014, 0.3));
+      mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, 0.011, 8, false), rubber, 0, 0, 0, g);
+      // the plug in the box
+      const inPlug = new THREE.Group();
+      mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.08, 20).rotateX(Math.PI / 2).translate(0, 0, 0.04), metal, 0, 0, 0, inPlug);
+      mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.04, 16).rotateX(Math.PI / 2).translate(0, 0, 0.1), rubber, 0, 0, 0, inPlug);
+      inPlug.position.set(sockets[0].x, sockets[0].y, sockets[0].z);
+      box3.add(inPlug);
+      // the loose plug, pointing across the sheet
+      const loose = new THREE.Group();
+      mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.09, 20).rotateZ(Math.PI / 2).translate(-0.045, 0, 0), metal, 0, 0, 0, loose);
+      mesh(new THREE.CylinderGeometry(0.018, 0.012, 0.04, 16).rotateZ(Math.PI / 2).translate(0.02, 0, 0), rubber, 0, 0, 0, loose);
+      for (let p = 0; p < 3; p++) {
+        const a = Math.PI / 2 + (p * Math.PI * 2) / 3;
+        mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.016, 6).rotateZ(Math.PI / 2), metal, -0.098, Math.sin(a) * 0.009, Math.cos(a) * 0.009, loose);
+      }
+      const looseY = 0.024;
+      loose.position.set(-0.1, looseY, 0.3);
+      loose.rotation.y = -0.1;
+      g.add(loose);
+      g.userData.respond = (k) => {
+        roll.position.z = rollZ - GIVE * k;
+        more.scale.z = Math.max(0.001, k);
+        loose.position.y = looseY + 0.05 * k;
+        loose.rotation.z = -0.35 * k;
+      };
+      return g;
+    }
+
     /* ---- symbolic objects ---- */
 
     // An early-2000s PC: thick CRT monitor, tower, keyboard and mouse. Seed and Record room share it;
@@ -1359,7 +1565,7 @@ body:not(.no-3d) #desk-view { display: none; }
       return g;
     }
 
-    return { placeholder, eminence, precision, gmtOne, t1210, keyring, pc, ledger, sleeve, patch, folio };
+    return { placeholder, eminence, precision, gmtOne, t1210, keyring, plans, pc, ledger, sleeve, patch, folio };
   }
 
   window.DeskProps = { builders, PALETTE };
@@ -2863,10 +3069,175 @@ window.DeskTitle = (function () {
     }));
   }
 
+  // Technical drawings ("sheets"): each on a large sheet of its own with a short title and caption, opening into
+  // the viewer below.
+  function gallerySheets(items) {
+    return el("div", { class: "sheets" }, items.map((id, i) => {
+      const m = media[id];
+      const open = el("button", { type: "button", class: "sheet__open", "aria-label": "Enlarge " + (m.title || m.caption) }, [
+        el("img", { src: m.src, alt: m.alt, width: m.w, height: m.h, loading: i > 1 ? "lazy" : null, decoding: "async" }),
+        el("span", { class: "sheet__zoom", "aria-hidden": "true", text: "Enlarge" })
+      ]);
+      open.addEventListener("click", () => viewer.open(items, i, open));
+      return el("figure", { class: "sheet" }, [open, el("figcaption", {}, [
+        m.title ? el("strong", { class: "sheet__title", text: m.title }) : null,
+        el("span", { class: "sheet__caption", text: m.caption }),
+        el("span", { class: "gallery__credit", text: m.credit || "" })
+      ])]);
+    }));
+  }
+
+  // The enlarged view: the drawing's high-resolution copy, fetched only now, over the page. Wheel, pinch or the
+  // buttons zoom about a point; drag pans; double-click toggles between the whole sheet and a close look. Arrow
+  // keys step through the set, Esc closes and focus goes back to the sheet that opened it.
+  const viewer = (() => {
+    let list = [], index = 0, opener = null, scale = 1, fit = 1, x = 0, y = 0, iw = 1, ih = 1;
+    const pointers = new Map();
+    let pinch = null, drag = null;
+    const img = el("img", { class: "viewer__img", alt: "", draggable: "false" });
+    const stage = el("div", { class: "viewer__stage" }, [img]);
+    const heading = el("p", { class: "viewer__title", id: "viewer-title" });
+    const note = el("p", { class: "viewer__caption" });
+    const count = el("span", { class: "viewer__count" });
+    const button = (label, text, fn) => el("button", { type: "button", class: "viewer__btn", "aria-label": label, title: label, text, onclick: fn });
+    const prev = button("Previous drawing", "←", () => show(index - 1));
+    const next = button("Next drawing", "→", () => show(index + 1));
+    const tools = [prev, next, button("Zoom out", "−", () => zoomAt(1 / 1.6)), button("Whole sheet", "Fit", () => place(fit, null)),
+      button("Zoom in", "+", () => zoomAt(1.6)), button("Close", "×", () => close())];
+    const dialog = el("div", { class: "viewer", role: "dialog", "aria-modal": "true", "aria-labelledby": "viewer-title", hidden: true }, [
+      el("div", { class: "viewer__bar" }, [el("div", { class: "viewer__text" }, [heading, note]), el("div", { class: "viewer__tools" }, [count, ...tools])]),
+      stage
+    ]);
+    document.body.append(dialog);
+
+    function bounds() { return stage.getBoundingClientRect(); }
+    // Keep some of the drawing on screen however far it is pushed or zoomed out.
+    function clamp() {
+      const b = bounds(), w = iw * scale, h = ih * scale;
+      x = w <= b.width ? (b.width - w) / 2 : Math.min(0, Math.max(b.width - w, x));
+      y = h <= b.height ? (b.height - h) / 2 : Math.min(0, Math.max(b.height - h, y));
+    }
+    function draw() { clamp(); img.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")"; }
+    // Scale to `s` keeping the point (px, py) of the stage still; with no point, the middle.
+    function place(s, at) {
+      const b = bounds(), p = at || { x: b.width / 2, y: b.height / 2 };
+      const s2 = Math.min(Math.max(s, fit), Math.max(fit * 8, 1.5));
+      x = p.x - ((p.x - x) / scale) * s2;
+      y = p.y - ((p.y - y) / scale) * s2;
+      scale = s2;
+      draw();
+    }
+    function zoomAt(k, at) { place(scale * k, at); }
+    function refit() {
+      const b = bounds();
+      fit = Math.min(b.width / iw, b.height / ih) * 0.96;
+      scale = fit;
+      x = (b.width - iw * scale) / 2;
+      y = (b.height - ih * scale) / 2;
+      draw();
+    }
+    function show(i) {
+      index = (i + list.length) % list.length;
+      const m = media[list[index]];
+      iw = m.lw || m.w;
+      ih = m.lh || m.h;
+      img.style.width = iw + "px";
+      img.style.height = ih + "px";
+      img.alt = m.alt;
+      img.src = m.src;                                   // the sheet's own copy at once, then the sharp one
+      if (m.large && m.large !== m.src) {
+        const id = list[index], sharp = new Image();
+        sharp.onload = () => { if (!dialog.hidden && list[index] === id) img.src = m.large; };
+        sharp.src = m.large;
+      }
+      heading.textContent = m.title || "";
+      note.textContent = m.caption;
+      count.textContent = pad2(index + 1) + " / " + pad2(list.length);
+      prev.hidden = next.hidden = list.length < 2;
+      refit();
+    }
+    function open(items, i, from) {
+      list = items;
+      opener = from;
+      dialog.hidden = false;
+      document.documentElement.classList.add("viewing");
+      show(i);
+      tools[tools.length - 1].focus({ preventScroll: true });
+    }
+    function close() {
+      if (dialog.hidden) return;
+      dialog.hidden = true;
+      document.documentElement.classList.remove("viewing");
+      img.removeAttribute("src");
+      pointers.clear();
+      if (opener && opener.isConnected) opener.focus({ preventScroll: true });
+    }
+
+    dialog.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); close(); }
+      else if (e.key === "ArrowLeft") show(index - 1);
+      else if (e.key === "ArrowRight") show(index + 1);
+      else if (e.key === "+" || e.key === "=") zoomAt(1.6);
+      else if (e.key === "-" || e.key === "_") zoomAt(1 / 1.6);
+      else if (e.key === "0") place(fit, null);
+      else if (e.key === "Tab") {
+        // Focus stays in the viewer while it is open.
+        const f = [...dialog.querySelectorAll("button:not([hidden])")];
+        const at = f.indexOf(document.activeElement);
+        if (e.shiftKey && at <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && at === f.length - 1) { e.preventDefault(); f[0].focus(); }
+        return;
+      } else return;
+      e.preventDefault();
+    });
+    stage.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const b = bounds();
+      zoomAt(Math.exp(-e.deltaY * 0.0015), { x: e.clientX - b.left, y: e.clientY - b.top });
+    }, { passive: false });
+    stage.addEventListener("dblclick", (e) => {
+      const b = bounds(), at = { x: e.clientX - b.left, y: e.clientY - b.top };
+      place(scale > fit * 1.05 ? fit : Math.max(1, fit * 2.5), at);
+    });
+    stage.addEventListener("pointerdown", (e) => {
+      stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        const [a, c] = [...pointers.values()];
+        pinch = { d: Math.hypot(a.x - c.x, a.y - c.y), s: scale };
+        drag = null;
+      } else if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, ox: x, oy: y };
+    });
+    stage.addEventListener("pointermove", (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pointers.size === 2) {
+        const [a, c] = [...pointers.values()], b = bounds();
+        place(pinch.s * Math.hypot(a.x - c.x, a.y - c.y) / pinch.d, { x: (a.x + c.x) / 2 - b.left, y: (a.y + c.y) / 2 - b.top });
+      } else if (drag) {
+        x = drag.ox + e.clientX - drag.x;
+        y = drag.oy + e.clientY - drag.y;
+        draw();
+      }
+    });
+    const lift = (e) => {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = null;
+      if (!pointers.size) drag = null;
+    };
+    stage.addEventListener("pointerup", lift);
+    stage.addEventListener("pointercancel", lift);
+    window.addEventListener("resize", () => { if (!dialog.hidden) refit(); });
+    // Leaving the page (the back button, a link) closes it too.
+    window.addEventListener("hashchange", () => close());
+    return { open, close };
+  })();
+
   function gallery(ids, layout, captions) {
     const items = ids.filter((id) => media[id]);
     if (!items.length) return null;
     if (layout === "grid") return galleryGrid(items, captions);
+    if (layout === "sheets") return gallerySheets(items);
     let current = 0;
     const main = el("img", { class: "gallery__main", decoding: "async" });
     const caption = el("span", { class: "gallery__caption" });
@@ -2947,11 +3318,13 @@ window.DeskTitle = (function () {
       [document.createTextNode(l.label), el("span", { "aria-hidden": "true", text: "↗" })]));
     const siblings = inCat(p.category);
     const next = siblings.length > 1 ? siblings[(siblings.indexOf(p) + 1) % siblings.length] : null;
+    const pictures = gallery(p.gallery || [], p.galleryLayout, p.captions);
+    const summary = p.summary ? el("p", { class: "summary", text: p.summary }) : null;
     return [
       el("p", { class: "eyebrow", text: p.context }),
       el("h3", { id: "story-title", tabindex: "-1", text: p.title }),
-      gallery(p.gallery || [], p.galleryLayout, p.captions),
-      p.summary ? el("p", { class: "summary", text: p.summary }) : null,
+      // A page of drawings reads its short introduction first; elsewhere the pictures lead.
+      ...(p.galleryLayout === "sheets" ? [summary, pictures] : [pictures, summary]),
       action(p),
       modules(p),
       facts.length ? el("div", { class: "facts" }, facts) : null,
@@ -2961,6 +3334,55 @@ window.DeskTitle = (function () {
         el("span", { text: "Next in " + catById[p.category].name }), document.createTextNode(next.title + " →")
       ])]) : null
     ];
+  }
+
+  // A message form for the Contact section. It appears only once the site has a form endpoint (a hosted form service
+  // James has set up and verified; `cv.form` in desk.json). Until then, and always in the offline file, the email
+  // link is the way, and no Send button pretends to work.
+  function contactForm(cfg) {
+    if (!cfg || !cfg.endpoint) return null;
+    const status = el("p", { class: "cform__status", role: "status", "aria-live": "polite" });
+    const field = (label, input) => el("label", { class: "cform__field" }, [el("span", { text: label }), input]);
+    const email = el("input", { name: "email", type: "email", autocomplete: "email", required: true, maxlength: "254" });
+    const message = el("textarea", { name: "message", required: true, maxlength: "2000", rows: "6" });
+    const name = el("input", { name: "name", type: "text", autocomplete: "name", maxlength: "100" });
+    const trap = el("input", { name: "_gotcha", type: "text", tabindex: "-1", autocomplete: "off" });
+    const send = el("button", { type: "submit", class: "action__go", text: "Send" });
+    const form = el("form", { class: "cform", novalidate: true }, [
+      field("Your email (so I can reply)", email), field("Message", message), field("Name (optional)", name),
+      el("label", { class: "cform__trap", "aria-hidden": "true" }, [document.createTextNode("Leave this empty"), trap]),
+      el("div", { class: "cform__row" }, [send, status]),
+      el("p", { class: "cform__note", text: "Your message and email address are sent to me through " + (cfg.provider || "a form service") + "." })
+    ]);
+    const say = (t) => { status.textContent = t; };
+    let busy = false;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (busy) return;                                  // one send at a time
+      const from = email.value.trim(), text = message.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(from)) { say("Please add your email address, so I can reply."); email.focus(); return; }
+      if (!text) { say("Please write a message."); message.focus(); return; }
+      if (text.length > 2000) { say("That's a little long: 2000 characters at most."); message.focus(); return; }
+      if (trap.value) { say("Sent."); return; }         // a form-filling robot: nothing is sent
+      busy = true; send.disabled = true; say("Sending…");
+      const stop = new AbortController(), timer = setTimeout(() => stop.abort(), 15000);
+      const fallback = (data.cv.contact.find((c) => c.href.startsWith("mailto:")) || {}).label;
+      const kept = " Your message is still here: try again" + (fallback ? ", or email " + fallback : "") + ".";
+      try {
+        const r = await fetch(cfg.endpoint, {
+          method: "POST", signal: stop.signal, headers: { Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({ email: from, message: text, name: name.value.trim(), site: cfg.site || location.host, _subject: "Message from " + (cfg.site || location.host) })
+        });
+        if (r.ok) { form.reset(); say("Sent. Thank you: I'll reply to " + from + "."); }
+        else {
+          const j = await r.json().catch(() => null), why = j && j.errors && j.errors[0] && j.errors[0].message;
+          say("That didn't send" + (why ? " (" + why + ")" : "") + "." + kept);
+        }
+      } catch (err) {
+        say((err.name === "AbortError" ? "No answer from the form service, so it may not have sent." : "That didn't send: there seems to be no connection.") + kept);
+      } finally { clearTimeout(timer); busy = false; send.disabled = false; }
+    });
+    return form;
   }
 
   function cvStory() {
@@ -2981,7 +3403,7 @@ window.DeskTitle = (function () {
       el("section", {}, [el("h4", { text: "Education" }), el("p", { text: cv.education })]),
       el("section", {}, [el("h4", { text: "Skills" }), skills]),
       el("section", {}, [el("h4", { text: "Also" }), el("p", { text: cv.extra })]),
-      el("section", {}, [el("h4", { text: "Contact" }), contact,
+      el("section", {}, [el("h4", { text: "Contact" }), contact, contactForm(cv.form),
         // The page is set up to print as a plain document, which also makes a PDF to attach.
         el("p", {}, [el("button", { type: "button", class: "textlink printlink", text: "Print or save as PDF", onclick: () => window.print() })])])
     ];

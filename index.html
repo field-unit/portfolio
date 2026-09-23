@@ -93,30 +93,40 @@ body[data-view="desk"] .top { justify-content: flex-end; }
 .bottom { display: flex; justify-content: space-between; gap: 0.6rem 1rem; flex-wrap: wrap; padding-block: 0 2rem; font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .footrule { display: block; flex-basis: 100%; max-width: 100%; margin-bottom: 1rem; }   /* the printed rule, in dots (grain.js) */
 
-/* ---- intro (overview only) ---- */
-.intro { padding-block: clamp(1.3rem, 3vw, 2.2rem) 1.4rem; border-top: 1px solid var(--line); text-align: center; }
+/* ---- the name, projected on the wall behind the desk (desk view only) ---- */
+.intro { position: relative; z-index: 1; padding-block: clamp(0.9rem, 2.4vh, 1.8rem) 0.2rem; text-align: center; }
 .intro .eyebrow { margin-top: 0.8rem; }
-/* The name as shallow slabs in the desk's own perspective, shaded in grain (title.js). */
-.title { display: block; max-width: 100%; margin: 0 auto; }
-.intro__line { margin-top: 0.5rem; font: var(--label); letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+.projection { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
+/* The frame is drawn a dot per canvas pixel and blown up square (title.js); a faint green light spills round it. */
+.title { display: block; max-width: 100%; margin: 0 auto; image-rendering: pixelated; filter: drop-shadow(0 0 16px rgba(140, 170, 85, 0.3)); }
+.projection__pause {
+  position: absolute; right: 0.4rem; bottom: 0.4rem; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; padding: 0;
+  border: 1px solid rgba(140, 170, 85, 0.6); border-radius: 2px; background: rgba(14, 16, 13, 0.75); color: #8caa55; opacity: 0.6;
+}
+.projection:hover .projection__pause, .projection__pause:focus-visible, .projection__pause[aria-pressed="true"] { opacity: 1; }
+.projection__pause span { width: 0.52rem; height: 0.58rem; box-sizing: border-box; border-inline: 0.17rem solid currentColor; }   /* two bars */
+.projection__pause[aria-pressed="true"] span { width: 0; height: 0; border: 0; border-left: 0.52rem solid currentColor; border-block: 0.32rem solid transparent; }   /* play */
+.intro__line { margin-top: 0.45rem; font: var(--label); letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
 .intro__line b { font-weight: 500; color: var(--ink-2); }
 .intro__plain { font: 500 1.6rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---- the desk: every project as an object, each with a place card ---- */
-.deck { position: relative; border-block: 1px solid var(--line); background: var(--bg); }
-.filters { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; padding: 0.85rem var(--gutter) 0.15rem; }
+/* The desk's room: one wall behind the name and the desk alike, so the projection hangs where the desk stands. */
+.deck {
+  position: relative; border-block: 1px solid var(--line);
+  background:
+    radial-gradient(circle, rgba(27, 32, 27, 0.09) 1px, transparent 1.5px) 0 0 / 20px 20px,
+    radial-gradient(120% 95% at 50% 38%, #eef0e8 0%, #e3e7db 68%, #d9ddd0 100%);
+}
+/* The filters sit under the desk, above the footer. */
+.filters { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; padding: 0.5rem var(--gutter) 0.8rem; }
 .chip { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.36rem 0.75rem 0.36rem 0.4rem; border: 1px solid var(--line-2); border-radius: 3px; background: var(--panel); font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
 .chip[data-filter=""] { padding-left: 0.75rem; }
 .chip__num { display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border: 1px solid currentColor; font: 500 0.58rem/1 var(--mono); letter-spacing: 0; }
 .chip:hover { border-color: var(--ink); color: var(--ink); }
 .chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--panel); }
-.stage {
-  position: relative; height: 22rem; overflow: hidden;      /* the desk page overrides this with the room it has */
-  background:
-    radial-gradient(circle, rgba(27, 32, 27, 0.09) 1px, transparent 1.5px) 0 0 / 20px 20px,
-    radial-gradient(120% 95% at 50% 30%, #eef0e8 0%, #e3e7db 68%, #d9ddd0 100%);
-}
+.stage { position: relative; height: 22rem; overflow: hidden; }   /* the desk page overrides this with the room it has */
 .stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: pan-y; }
 .stage__status { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 1rem; text-align: center; font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
@@ -332,23 +342,23 @@ body:not(.no-3d) #desk-view { display: none; }
 /* Short windows: the same page, with the air taken out of it rather than the desk. */
 @media (max-height: 760px) {
   .top { padding-block: 0.55rem; }
-  .intro { padding-block: 0.7rem 0.6rem; }
+  .intro { padding-block: 0.6rem 0.1rem; }
   .bottom { padding-block: 0 0.9rem; }
   .footrule { margin-bottom: 0.55rem; }
 }
 @media (max-height: 620px) {
-  .intro { padding-block: 0.45rem 0.35rem; }
-  .intro__line { margin-top: 0.3rem; }
-  .filters { padding-block: 0.4rem 0.05rem; }
+  .intro { padding-block: 0.4rem 0; }
+  .intro__line { margin-top: 0.25rem; }
+  .filters { padding-block: 0.35rem 0.5rem; }
 }
 
 @media (max-width: 40rem) {
   .top { padding-block: 0.5rem; }
-  .intro { padding-block: 0.9rem 0.7rem; }
+  .intro { padding-block: 0.7rem 0.1rem; }
   .intro__line { margin-top: 0.4rem; font-size: 0.6rem; letter-spacing: 0.1em; }
   .filters {
     flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start;
-    padding: 0.55rem var(--gutter) 0.1rem; scrollbar-width: none;
+    padding: 0.5rem var(--gutter) 0.7rem; scrollbar-width: none;
     /* the last chip fades out at the edge, so it is clear the row carries on */
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
     mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
@@ -372,7 +382,7 @@ body:not(.no-3d) #desk-view { display: none; }
 @media print {
   @page { margin: 16mm; }
   body { background: #fff; color: #000; }
-  .skip, .utilities, .readbar, .deck, .title, .footrule, .tags, .hud, .pcmenu,
+  .skip, .utilities, .readbar, .deck, .title, .projection__pause, .footrule, .tags, .hud, .pcmenu,
   .gallery__bar, .next, .shelfnav, .plist, .folio__head .textlink, .printlink { display: none !important; }
   .folio__body { display: block; }          /* without the project list beside it, the story takes the page */
   /* the words behind the dot-matrix heading take its place */
@@ -402,13 +412,16 @@ body:not(.no-3d) #desk-view { display: none; }
   <div class="readbar__links" id="readbar-links"></div>
 </nav>
 <main id="main" tabindex="-1">
-  <div class="intro" id="intro">
-    <h1 class="visually-hidden" id="desk-title"></h1>
-    <canvas class="title" id="desk-title-canvas" aria-hidden="true"></canvas>
-    <p class="intro__line" id="desk-line"></p>
-  </div>
   <section class="deck" id="deck" aria-label="The desk">
-    <div class="filters" id="filters" role="group" aria-label="Show one section of the desk"></div>
+    <!-- The name, projected on the wall behind the desk (title.js); the words themselves are the heading. -->
+    <div class="intro" id="intro">
+      <h1 class="visually-hidden" id="desk-title"></h1>
+      <div class="projection" id="projection">
+        <canvas class="title" id="desk-title-canvas" aria-hidden="true"></canvas>
+        <button class="projection__pause" id="title-pause" type="button" aria-pressed="false" aria-label="Pause the moving name" hidden><span aria-hidden="true"></span></button>
+      </div>
+      <p class="intro__line" id="desk-line"></p>
+    </div>
     <div class="stage" id="stage">
       <p class="stage__status" id="stage-status">Setting out the desk…</p>
       <nav class="tags" id="tags" aria-label="Projects on the desk"></nav>
@@ -418,6 +431,7 @@ body:not(.no-3d) #desk-view { display: none; }
         <span class="hud__br" id="hud-br"></span>
       </div>
     </div>
+    <div class="filters" id="filters" role="group" aria-label="Show one section of the desk"></div>
   </section>
   <!-- Shown only where there is no WebGL: the projects as a plain list, in place of the desk. -->
   <section class="desk" id="desk-view" aria-label="All projects">
@@ -2057,337 +2071,247 @@ window.GrainType = (function () {
   return { rule };
 })();
 
-/* The name, in the desk's own perspective.
+/* The name, projected on the wall behind the desk.
 
-   Each letter is a shallow slab standing on the board: turned the same way as the objects below it and seen
-   from the same angle above, so the heading belongs to the same space as the desk rather than sitting on top
-   of it. The front face, its bevelled edge and the top and side faces the turn reveals are shaded by one
-   light, and that shading is printed as fine grain — dense where the surface is dark, sparse where it catches
-   the light — so the letters read as a worn electronic image rather than as type. The light goes slowly
-   round and a little of the grain is re-scattered each frame, so the highlight drifts across the bevels and
-   the surface glitters faintly. Nothing else moves, and the box it draws in never changes.
+   One dark rectangle, the way a projector would throw it on the pale wall, holding "JAMES MASON" as shallow green
+   slabs. The picture is made the way Field Unit makes its null-set logo: a field of values — the letters' faces lit
+   by one light, their sides in shade, a soft spill of light round them, and value noise drifting through all of
+   it — printed through a 4 x 4 Bayer dither onto the same five greens. The dither's phase steps each frame, so the
+   grain crawls rather than sits still.
 
-   No font is loaded: the letters of the name are drawn from the centre lines written out below, so they are
-   the same in every browser. The words themselves are in the page as a plain heading, for search engines and
-   screen readers, and are what prints.
+   The letters themselves move: the word turns a degree or two either way and drifts a little inside the frame, on
+   slow loops of about twelve seconds, and the slabs' sides and shading follow the turn. The frame never moves or
+   changes size. No scan lines, no sweeping bands, no flashing.
 
-   Used by app.js for the desk heading. The footer's printed rule is separate (grain.js). */
+   The letters are drawn from outlines written out below — a chamfered geometric face, one weight throughout — so
+   there is no font to load and the name is the same everywhere. The words are in the page as a plain heading for
+   search engines and screen readers, and are what prints.
+
+   Cheap by design: the picture is worked out at half the frame's size (so each dot is two pixels across, as on
+   Field Unit), twelve times a second, and only while the desk is showing and the tab is visible. With reduced
+   motion it draws one finished frame. Used by app.js for the desk heading. */
 window.DeskTitle = (function () {
   "use strict";
 
-  /* The letters as centre lines on a 7.6-unit cap height, stroked square to 2.4: a geometric face cut by a
-     machine, to go with the rest of the type. With the stroke, each letter stands 10 units tall. */
-  const STROKE = 2.15;
-  const CAPLINE = 7.6;                 // centre-line height; the slab is CAPLINE + STROKE tall
-  const BOX = CAPLINE + STROKE;
+  // Field Unit's greens, darkest first (its RAMP), and its ordered dither.
+  const RAMP = [[14, 16, 13], [43, 51, 31], [105, 130, 70], [140, 170, 85], [228, 226, 214]];
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
+  /* The letters, as filled outlines on a 10-unit cap height with a 2-unit stroke and chamfered corners. Each is a
+     list of polygons; holes are wound the other way and filled even-odd. */
   const GLYPHS = {
-    J: { w: 3.4, lines: [[[3.4, 0], [3.4, 5.9], [2.4, 7.6], [1.0, 7.6], [0, 6.4]]] },
-    A: { w: 5.4, lines: [[[0, 7.6], [2.7, 0], [5.4, 7.6]], [[1.0, 5.1], [4.4, 5.1]]] },
-    M: { w: 6.0, lines: [[[0, 7.6], [0, 0], [3.0, 4.6], [6.0, 0], [6.0, 7.6]]] },
-    E: { w: 4.6, lines: [[[0, 0], [0, 7.6]], [[0, 0], [4.6, 0]], [[0, 3.8], [3.6, 3.8]], [[0, 7.6], [4.6, 7.6]]] },
-    S: { w: 4.6, lines: [[[4.6, 1.1], [3.5, 0], [1.1, 0], [0, 1.1], [0, 2.7], [1.1, 3.8], [3.5, 3.8],
-                          [4.6, 4.9], [4.6, 6.5], [3.5, 7.6], [1.1, 7.6], [0, 6.5]]] },
-    O: { w: 4.8, lines: [[[0, 1.6], [1.6, 0], [3.2, 0], [4.8, 1.6], [4.8, 6.0], [3.2, 7.6], [1.6, 7.6], [0, 6.0], [0, 1.6]]] },
-    N: { w: 4.8, lines: [[[0, 7.6], [0, 0], [4.8, 7.6], [4.8, 0]] ] }
+    J: { w: 6, polys: [[[4, 0], [6, 0], [6, 8.8], [4.8, 10], [1.2, 10], [0, 8.8], [0, 6.4], [2, 6.4], [2, 8], [4, 8]]] },
+    A: { w: 8, polys: [[[2.6, 0], [5.4, 0], [8, 10], [5.9, 10], [4, 3.3], [2.1, 10], [0, 10]], [[1.7, 6.1], [6.3, 6.1], [6.8, 7.9], [1.2, 7.9]]] },
+    M: { w: 9, polys: [[[0, 0], [2, 0], [2, 10], [0, 10]], [[7, 0], [9, 0], [9, 10], [7, 10]],
+                       [[0.4, 0], [2.6, 0], [4.5, 3.4], [6.4, 0], [8.6, 0], [4.5, 7]]] },
+    E: { w: 6.5, polys: [[[0, 0], [6.5, 0], [6.5, 2], [2, 2], [2, 4], [5.6, 4], [5.6, 6], [2, 6], [2, 8], [6.5, 8], [6.5, 10], [0, 10]]] },
+    S: { w: 7, polys: [[[1.2, 0], [7, 0], [7, 2], [2, 2], [2, 4], [5.8, 4], [7, 5.2], [7, 8.8], [5.8, 10], [0, 10], [0, 8], [5, 8],
+                        [5, 6], [1.2, 6], [0, 4.8], [0, 1.2]]] },
+    O: { w: 8, polys: [[[1.2, 0], [6.8, 0], [8, 1.2], [8, 8.8], [6.8, 10], [1.2, 10], [0, 8.8], [0, 1.2]],
+                       [[2.6, 2], [2, 2.6], [2, 7.4], [2.6, 8], [5.4, 8], [6, 7.4], [6, 2.6], [5.4, 2]]] },
+    N: { w: 7.5, polys: [[[0, 0], [2, 0], [2, 10], [0, 10]], [[5.5, 0], [7.5, 0], [7.5, 10], [5.5, 10]],
+                         [[0.2, 0], [2.5, 0], [7.3, 10], [5, 10]]] }
   };
-  const TRACK = 1.6;                   // between letters, in units
-  const WORDGAP = 5.4;                 // between words
+  const CAP = 10, TRACK = 1.4, WORDGAP = 4.4;
+  const ASPECT = 6.9;                                  // the frame's width to height, to hold the word in one line
 
   function hash(x, y) {
     const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
     return s - Math.floor(s);
   }
-  // Value noise, so the flecks clump a little instead of lying evenly.
-  function smooth(x, y) {
+  function noise(x, y) {                               // value noise, as Field Unit's
     const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
     const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
-    return (hash(xi, yi) * (1 - u) + hash(xi + 1, yi) * u) * (1 - v)
-      + (hash(xi, yi + 1) * (1 - u) + hash(xi + 1, yi + 1) * u) * v;
+    return hash(xi, yi) * (1 - u) * (1 - v) + hash(xi + 1, yi) * u * (1 - v) + hash(xi, yi + 1) * (1 - u) * v + hash(xi + 1, yi + 1) * u * v;
   }
 
-  /* Where each letter of a line sits, and how wide the line is, all in units and before the turn. */
-  function setLine(text) {
-    const out = [];
-    let x = 0;
-    [...text].forEach((ch, i) => {
-      if (i) x += ch === " " || text[i - 1] === " " ? 0 : TRACK;
-      if (ch === " ") { x += WORDGAP; return; }
-      const g = GLYPHS[ch];
-      if (!g) return;
-      const box = g.w + STROKE;
-      out.push({ g, centre: x + box / 2, half: box / 2 });
-      x += box;
+  // The lines of the name, each a list of placed letters, in units.
+  function setLines(words, stacked) {
+    const lines = stacked ? words.split(" ") : [words];
+    return lines.map((text) => {
+      const out = [];
+      let x = 0;
+      [...text].forEach((ch, i) => {
+        if (ch === " ") { x += WORDGAP; return; }
+        const g = GLYPHS[ch];
+        if (!g) return;
+        if (i && text[i - 1] !== " ") x += TRACK;
+        out.push({ g, x });
+        x += g.w;
+      });
+      return { letters: out, width: x };
     });
-    return { letters: out, width: x };
-  }
-
-  /* Two passes of a chamfer distance transform: near enough for a bevel a few pixels wide, and quick. */
-  function distance(inside, w, h) {
-    const d = new Float32Array(w * h);
-    const BIG = 1e6, A = 1, B = 1.4142136;
-    for (let i = 0; i < d.length; i++) d[i] = inside[i] ? BIG : 0;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        if (!d[i]) continue;
-        let m = d[i];
-        if (y > 0) {
-          if (x > 0) m = Math.min(m, d[i - w - 1] + B);
-          m = Math.min(m, d[i - w] + A);
-          if (x < w - 1) m = Math.min(m, d[i - w + 1] + B);
-        }
-        if (x > 0) m = Math.min(m, d[i - 1] + A);
-        d[i] = m;
-      }
-    }
-    for (let y = h - 1; y >= 0; y--) {
-      for (let x = w - 1; x >= 0; x--) {
-        const i = y * w + x;
-        if (!d[i]) continue;
-        let m = d[i];
-        if (y < h - 1) {
-          if (x < w - 1) m = Math.min(m, d[i + w + 1] + B);
-          m = Math.min(m, d[i + w] + A);
-          if (x > 0) m = Math.min(m, d[i + w - 1] + B);
-        }
-        if (x < w - 1) m = Math.min(m, d[i + 1] + A);
-        d[i] = m;
-      }
-    }
-    return d;
   }
 
   function make(canvas, options) {
     const o = Object.assign({
       words: "JAMES MASON",
-      stack: false,        // two lines, for a narrow screen
-      yaw: 15,             // the turn, in degrees (the desk's objects stand at 20)
-      pitch: 41,           // looking down on them, as the desk's camera does (0.72 rad)
-      depth: 1.3,          // how deep each slab is, in units
-      bevel: 0.5,          // the bevel around the front face, in units
-      cap: 76,             // how tall a letter goes, in CSS pixels; a function is asked each time
-      lead: 2.2,           // between the two lines on a phone, in units
-      pad: 7,              // room for the loose grain around the letters
-      ink: "#151b17", inkSoft: "#4d574c", glint: "#f0f3ea",
-      shimmer: 0.012,      // how much of the grain is re-scattered each frame
-      turn: 11000,         // how long the light takes to come round, in milliseconds
-      fps: 16
+      height: 92,           // the frame's height in CSS pixels; a function is asked each time it is laid out
+      within: null,         // the element whose width the frame must fit (default: the canvas's parent)
+      dot: 2,               // CSS pixels per dot
+      fps: 12,
+      turn: 12000,          // one slow loop of the turn, in ms
+      drift: 14000          // one loop of the drift
     }, options || {});
-
     const ctx = canvas.getContext("2d");
-    const RAD = Math.PI / 180;
-    const cp = Math.cos(o.pitch * RAD), sp = Math.sin(o.pitch * RAD);
-    const cyw = Math.cos(o.yaw * RAD), syw = Math.sin(o.yaw * RAD);
-    // One unit of the letter's own space, on the screen: across it, down it, and back into the slab.
-    // Turning it about the upright axis and looking down on it puts the back of the slab up and to one side.
-    const EX = [cyw, -syw * sp];
-    const EY = [0, cp];
-    const EZ = [-syw, -cyw * sp];
+    const lo = document.createElement("canvas");
+    const lc = lo.getContext("2d", { willReadFrequently: true });
+    let W = 0, H = 0, w = 0, h = 0, lines = null, stacked = false;
+    let timer = 0, running = false, paused = false, phase = 0, started = 0, stale = true;
+    let image = null, blurCache = null;
 
-    let W = 0, H = 0, dpr = 1, started = 0, timer = 0, running = false, stale = true, phase = 0;
-    let px = null, image = null;
-
-    /* Stamp the wordmark into a context at one depth into the slab, as stroked centre lines. */
-    function stamp(c, unit, depth, rows, ox0, oy0) {
-      c.lineJoin = "miter";
-      c.lineCap = "square";
-      c.miterLimit = 2.6;
-      c.strokeStyle = "#000";
-      rows.forEach((row) => {
-        row.letters.forEach((L) => {
-          // Each letter turns about its own centre, so the line of them stays level: a row of small slabs,
-          // the way the objects stand in their rows below.
-          const ox = ox0 + (row.left + L.centre) * cyw * unit + depth * EZ[0] * unit;
-          const oy = oy0 + row.top * unit + depth * EZ[1] * unit;
-          c.setTransform(EX[0] * unit, EX[1] * unit, EY[0] * unit, EY[1] * unit, ox, oy);
-          c.lineWidth = STROKE;
-          c.beginPath();
-          L.g.lines.forEach((poly) => {
-            poly.forEach((p, k) => {
-              const lx = p[0] - L.g.w / 2, ly = p[1] - CAPLINE / 2;
-              if (k) c.lineTo(lx, ly); else c.moveTo(lx, ly);
-            });
+    // Draw the name's slabs into the small canvas as grey values: the sides first (each layer a step deeper),
+    // then the face. Red holds the tone; green marks where the letters are, for the spill.
+    function slabs(t) {
+      const turn = Math.sin((t / o.turn) * Math.PI * 2);
+      const lift = Math.sin((t / o.turn) * Math.PI * 2 + Math.PI / 2);
+      const yaw = (10 + 1.8 * turn) * Math.PI / 180;           // the word turned a little, and turning
+      const tilt = (7 + 1.2 * lift) * Math.PI / 180;           // and seen a little from below, and nodding
+      const dx = 0.012 * Math.sin((t / o.drift) * Math.PI * 2);
+      const dy = 0.035 * Math.sin((t / o.drift) * Math.PI * 2 + 1.3);
+      const widest = Math.max(...lines.map((l) => l.width));
+      const rows = lines.length, lead = 3.2;
+      const blockH = rows * CAP + (rows - 1) * lead;
+      const unit = Math.min((w * 0.84) / widest, (h * 0.62) / blockH);
+      const depth = 5;                                           // how deep the slabs are, in units
+      const ex = Math.sin(yaw) * depth, ey = Math.sin(tilt) * depth;   // the side faces show down and to the right
+      const sx = Math.cos(yaw), sy = Math.cos(tilt);
+      const ox = w / 2 + dx * w, oy = h / 2 + dy * h;
+      lc.setTransform(1, 0, 0, 1, 0, 0);
+      lc.clearRect(0, 0, w, h);
+      const put = (layer, colour) => {
+        lc.fillStyle = colour;
+        lines.forEach((line, r) => {
+          const top = -blockH / 2 + r * (CAP + lead);
+          line.letters.forEach((L) => {
+            lc.setTransform(unit * sx, 0, 0, unit * sy, ox + (L.x - line.width / 2 + layer * ex) * unit * sx, oy + (top + layer * ey) * unit * sy);
+            lc.beginPath();
+            L.g.polys.forEach((poly) => poly.forEach(([x, y], k) => (k ? lc.lineTo(x, y) : lc.moveTo(x, y))));
+            lc.fill("evenodd");
           });
-          c.stroke();
         });
-      });
-      c.setTransform(1, 0, 0, 1, 0, 0);
+      };
+      // The sides: lit a little more as the word turns towards the light (upper left), so the shading moves with it.
+      const side = Math.round(70 + 30 * turn);
+      const steps = 6;
+      for (let k = steps; k >= 1; k--) put(k / steps, `rgb(${side - k * 3},255,0)`);
+      put(0, "rgb(236,255,0)");
+      return unit;
     }
 
-    function layout(available) {
-      const texts = o.stack ? o.words.split(" ") : [o.words];
-      const rows = texts.map(setLine);
-      const widest = Math.max(...rows.map((r) => r.width));
-      const halfMax = Math.max(...rows.map((r) => Math.max(...r.letters.map((L) => L.half))));
-
-      const room = Math.max(60, available - o.pad * 2);
-      const cap = typeof o.cap === "function" ? o.cap() : o.cap;
-      const unit = Math.min(cap / BOX, room / (widest * cyw + o.depth * syw));
-
-      const pitchY = (BOX + o.lead) * cp;              // between rows, on the screen
-      rows.forEach((r, i) => {
-        r.left = (widest - r.width) / 2;
-        r.top = i * pitchY;                            // the centre of the row, in units of screen height
-      });
-
-      // What the turned, extruded letters take up on the screen, in units.
-      const spanX = widest * cyw + o.depth * syw;
-      const up = BOX / 2 * cp + halfMax * syw * sp + o.depth * cyw * sp;
-      const down = BOX / 2 * cp + halfMax * syw * sp;
-      const spanY = rows[rows.length - 1].top + up + down;
-
-      W = Math.ceil(spanX * unit) + o.pad * 2;
-      H = Math.ceil(spanY * unit) + o.pad * 2;
-      dpr = Math.min(1.75, window.devicePixelRatio || 1);
-      canvas.width = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-      canvas.style.width = W + "px";
-      canvas.style.height = H + "px";
-
-      const u = unit * dpr;
-      build(u, (o.pad + o.depth * syw * unit) * dpr, (o.pad + up * unit) * dpr, rows);
-    }
-
-    /* Everything that doesn't change while the light turns: which pixels can take ink, how their surface
-       faces, and each one's own place in the grain. */
-    function build(unit, ox0, oy0, rows) {
-      const w = canvas.width, h = canvas.height;
-      const off = document.createElement("canvas");
-      off.width = w; off.height = h;
-      const oc = off.getContext("2d", { willReadFrequently: true });
-
-      stamp(oc, unit, 0, rows, ox0, oy0);
-      const face = alphaOf(oc, w, h);
-      const steps = Math.max(5, Math.ceil(o.depth * unit));
-      for (let k = 1; k <= steps; k++) stamp(oc, unit, (o.depth * k) / steps, rows, ox0, oy0);
-      const solid = alphaOf(oc, w, h);
-
-      const inFace = distance(face, w, h);             // into the front face: its bevel
-      const toFace = distance(invert(face), w, h);     // out of it: the faces the slab's depth shows
-      const outside = distance(invert(solid), w, h);   // away from the letters: the loose grain
-
-      const bevel = Math.max(1.5, o.bevel * unit);
-      const fringe = 5 * dpr;
-      const idx = [], base = [], nxs = [], nys = [], kinds = [], noise = [];
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const i = y * w + x;
-          let kind, nx = 0, ny = 0, tone;
-          if (face[i]) {
-            kind = 0;
-            const d = inFace[i];
-            if (d < bevel) {                           // the rounded-off edge, which takes the highlight
-              const t = 1 - d / bevel;
-              nx = -(inFace[i + 1] - inFace[i - 1]) * 0.5 * t;
-              ny = -(inFace[i + w] - inFace[i - w]) * 0.5 * t;
-            }
-            // Not a flat fill: the face is a little uneven, the way a cast or milled surface is.
-            tone = 0.61 + 0.07 * (smooth(x / (26 * dpr), y / (26 * dpr)) - 0.5);
-          } else if (solid[i]) {
-            kind = 1;                                  // the top and side faces the turn reveals
-            nx = (toFace[i + 1] - toFace[i - 1]) * 0.5;
-            ny = (toFace[i + w] - toFace[i - w]) * 0.5;
-            tone = 0.74;
-          } else {
-            const d = outside[i];
-            if (d > fringe) continue;
-            kind = 2;                                  // a few stray specks, close in
-            tone = 0.12 * (1 - d / fringe);
+    // A soft copy of the letters' coverage, for the light they spill round themselves.
+    function spill(src) {
+      const n = w * h;
+      if (!blurCache || blurCache.length !== n) blurCache = new Float32Array(n);
+      const a = blurCache, tmp = new Float32Array(n), r = Math.max(2, Math.round(h * 0.08));
+      for (let i = 0; i < n; i++) a[i] = src[i * 4 + 3] > 128 ? 1 : 0;
+      for (let pass = 0; pass < 2; pass++) {                    // two box blurs, across then down
+        for (let y = 0; y < h; y++) {
+          let s = 0;
+          for (let x = -r; x <= r; x++) s += a[y * w + Math.min(w - 1, Math.max(0, x))];
+          for (let x = 0; x < w; x++) {
+            tmp[y * w + x] = s / (2 * r + 1);
+            s += a[y * w + Math.min(w - 1, x + r + 1)] - a[y * w + Math.max(0, x - r)];
           }
-          const len = Math.hypot(nx, ny);
-          idx.push(i); base.push(tone); kinds.push(kind);
-          nxs.push(len ? nx / len : 0); nys.push(len ? ny / len : 0);
-          noise.push(0.62 * hash(x * 0.73, y * 0.73) + 0.38 * smooth(x / (1.7 * dpr), y / (1.7 * dpr)));
+        }
+        for (let x = 0; x < w; x++) {
+          let s = 0;
+          for (let y = -r; y <= r; y++) s += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+          for (let y = 0; y < h; y++) {
+            a[y * w + x] = s / (2 * r + 1);
+            s += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+          }
         }
       }
-      px = {
-        i: Int32Array.from(idx), base: Float32Array.from(base), nx: Float32Array.from(nxs),
-        ny: Float32Array.from(nys), kind: Uint8Array.from(kinds), noise: Float32Array.from(noise)
-      };
-      image = ctx.createImageData(w, h);
-    }
-
-    function alphaOf(c, w, h) {
-      const d = c.getImageData(0, 0, w, h).data;
-      const a = new Uint8Array(w * h);
-      for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3] > 110 ? 1 : 0;
       return a;
     }
-    function invert(a) {
-      const b = new Uint8Array(a.length);
-      for (let i = 0; i < a.length; i++) b[i] = a[i] ? 0 : 1;
-      return b;
-    }
 
-    const INK = colour(o.ink), SOFT = colour(o.inkSoft), GLINT = colour(o.glint);
-    function colour(hex) {
-      return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
-    }
-
-    function paint(now) {
-      if (!px || !image) return;
-      const a = (now / o.turn) * Math.PI * 2;
-      // One light, coming slowly round and staying above: the highlight walks across the bevels and tops.
-      let lx = Math.cos(a) * 0.86, ly = -0.58 - 0.3 * Math.sin(a * 0.75), lz = 0.62;
-      const ll = Math.hypot(lx, ly, lz); lx /= ll; ly /= ll; lz /= ll;
+    function paint(t) {
+      if (!lines || !w || !h) return;
+      slabs(t);
+      const src = lc.getImageData(0, 0, w, h).data;
+      const glow = spill(src);
       const d = image.data;
-      d.fill(0);
-      for (let j = 0; j < px.i.length; j++) {
-        const kind = px.kind[j];
-        let tone = px.base[j];
-        if (kind !== 2) {
-          const nx = px.nx[j], ny = px.ny[j];
-          const out = kind ? 0.34 : 0.78;              // how far the surface leans out of the screen
-          const lum = nx || ny ? Math.max(0, nx * lx + ny * ly + out * lz) : lz * 0.94;
-          // The lit side of a bevel goes almost bare, the far side almost solid: that swing is the light.
-          tone += (kind ? 0.86 : 0.78) * (0.46 - lum);
-          if (tone < 0.03) tone = 0.03; else if (tone > 0.97) tone = 0.97;
-          if (o.shimmer && hash(j, phase) < o.shimmer) px.noise[j] = hash(j * 1.7, phase * 3.1);
-        }
-        const n = px.noise[j];
-        const i4 = px.i[j] * 4;
-        if (n < tone) {
-          const c = kind === 2 ? SOFT : n > tone - 0.12 ? SOFT : INK;   // every tone thins out through the paler ink
-          d[i4] = c[0]; d[i4 + 1] = c[1]; d[i4 + 2] = c[2];
-          d[i4 + 3] = kind === 2 ? 190 : 255;
-        } else if (!kind && tone < 0.3 && n > 0.988) {
-          d[i4] = GLINT[0]; d[i4 + 1] = GLINT[1]; d[i4 + 2] = GLINT[2]; d[i4 + 3] = 255;
+      const px = phase & 3, py = (phase >> 1) & 3, s = t / 1000;
+      const F = Math.max(3, h * 0.2);                           // how far in from the edges the throw is full
+      for (let y = 0; y < h; y++) {
+        const v = y / h, fy = Math.min(y, h - 1 - y) / F;
+        for (let x = 0; x < w; x++) {
+          const i = y * w + x, u = x / w;
+          const g = noise(u * 26 + s * 0.7, v * 9 - s * 0.5);     // Field Unit's drifting grain
+          const th = (BAYER[((y + py) & 3) * 4 + ((x + px) & 3)] + 0.5) / 16;
+          const j = i * 4;
+          let f;
+          if (src[i * 4 + 3] > 128) {
+            f = src[i * 4] / 255 + (g - 0.5) * 0.18;              // a face or a side, with grain through it
+          } else {
+            // The frame: a dim olive with a faint speckle and the light the letters spill, its edges dissolving
+            // into the wall through the same dither, the way a projector's throw fades.
+            const fall = Math.min(1, fy, Math.min(x, w - 1 - x) / F);
+            if (fall < th) { d[j + 3] = 0; continue; }
+            f = 0.13 + 0.13 * g + glow[i] * 0.3;
+          }
+          f = f < 0 ? 0 : f > 1 ? 1 : f;
+          const lv = f * 4, b = lv | 0;
+          const c = RAMP[lv - b > th ? Math.min(b + 1, 4) : b];
+          d[j] = c[0]; d[j + 1] = c[1]; d[j + 2] = c[2]; d[j + 3] = 255;
         }
       }
       ctx.putImageData(image, 0, 0);
     }
 
-    function draw() {
-      const parent = canvas.parentElement;
-      let available = 0;
-      if (parent) {
-        const s = window.getComputedStyle(parent);
-        available = parent.clientWidth - (parseFloat(s.paddingLeft) || 0) - (parseFloat(s.paddingRight) || 0);
-      }
-      available = Math.floor(available || canvas.clientWidth);
-      if (available < 40) { stale = true; return; }    // hidden: lay out again when it is next shown
+    function layout() {
+      // The width to fit: the column given (the frame's own wrapper takes its width from the frame, so it can't say).
+      const box = o.within || canvas.parentElement;
+      const cs = box ? getComputedStyle(box) : null;
+      const room = box ? box.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) : 0;
+      if (room < 40) { stale = true; return false; }
       stale = false;
-      layout(available);
-      paint(running ? performance.now() - started : 0);
+      const want = typeof o.height === "function" ? o.height() : o.height;
+      // The frame fits the word with a margin all round: as wide as the height allows, or as the column allows.
+      W = Math.round(Math.min(room, want * ASPECT));
+      H = Math.round(Math.min(want, W / ASPECT));
+      w = Math.max(40, Math.round(W / o.dot));
+      h = Math.max(16, Math.round(H / o.dot));
+      W = w * o.dot; H = h * o.dot;
+      canvas.width = w; canvas.height = h;                      // one canvas pixel per dot; CSS blows it up square
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      lo.width = w; lo.height = h;
+      lines = setLines(o.words, stacked);
+      image = ctx.createImageData(w, h);
+      return true;
+    }
+
+    function draw() {
+      if (!layout()) return;
+      paint(running ? performance.now() - started : 2600);
     }
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function tick() {
+      if (document.hidden) return;
+      phase++;
+      paint(performance.now() - started);
+    }
     return {
       draw,
-      // One moment of the light, drawn on demand: how tools/title-preview.html shows the movement as frames.
-      frame(ms) { if (stale) draw(); paint(ms || 0); },
+      frame(ms) { if (stale) layout(); paint(ms || 0); },       // one moment, on demand (tools/title-preview.html)
       start() {
         if (stale) draw();
-        if (running || reduced) return;                // finished, but still, when motion is turned down
+        if (running || reduced || paused) return;               // still, but finished, when motion is turned down
         running = true;
-        started = performance.now();
-        timer = setInterval(() => {
-          if (document.hidden) return;
-          phase++;
-          paint(performance.now() - started);
-        }, Math.round(1000 / o.fps));
+        started = performance.now() - 2600;
+        timer = setInterval(tick, Math.round(1000 / o.fps));
       },
-      stop() { running = false; clearInterval(timer); timer = 0; }
+      stop() { running = false; clearInterval(timer); timer = 0; },
+      // The pause control: stops the motion and leaves the frame as it was.
+      setPaused(value) {
+        paused = !!value;
+        if (paused) { running = false; clearInterval(timer); timer = 0; } else this.start();
+      },
+      get paused() { return paused; },
+      get moving() { return !reduced; }
     };
   }
 
@@ -2448,18 +2372,28 @@ window.DeskTitle = (function () {
   $("desk-line").append(el("b", { text: data.site.strap }),
     data.site.eyebrow ? el("span", { text: " · " + data.site.eyebrow }) : el("span"));
 
-  // The name itself: shallow slabs turned and lit like the objects below, printed in grain (title.js).
+  // The name itself, projected on the wall behind the desk in Field Unit's grain (title.js).
   const plate = window.DeskTitle
     ? window.DeskTitle.make($("desk-title-canvas"), {
       words: (data.site.name || "").toUpperCase(),
-      // Tall window, tall letters; a short one gives the room to the desk instead.
-      cap: () => Math.max(32, Math.min(76, window.innerHeight * 0.088))
+      within: $("intro"),
+      // Tall window, tall frame; a short one gives the room to the desk instead.
+      height: () => Math.max(46, Math.min(104, window.innerHeight * 0.092))
     })
     : null;
   if (!plate) {
     // Nothing to draw it with: the plain heading takes its place rather than leaving a gap.
     $("desk-title").classList.remove("visually-hidden");
     $("desk-title").classList.add("intro__plain");
+    $("projection").hidden = true;
+  } else if (plate.moving) {
+    // The name moves for as long as the desk shows, so it can be stopped (and it stays stopped).
+    const pause = $("title-pause");
+    pause.hidden = false;
+    pause.addEventListener("click", () => {
+      plate.setPaused(!plate.paused);
+      pause.setAttribute("aria-pressed", String(plate.paused));
+    });
   }
   const footRule = window.GrainType ? window.GrainType.rule($("foot-rule"), { grain: "#c0c7b8", drift: false }) : null;
   if (plate || footRule) {

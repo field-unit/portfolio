@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Remote Object — James Mason</title>
+<meta name="description" content="Remote Object: an interactive prototype by James Mason, a ring of musical devices you handle rather than a menu you read.">
+<link rel="stylesheet" href="./style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23070a0a'/%3E%3Crect x='3' y='4' width='10' height='7' fill='%23a5b69b'/%3E%3C/svg%3E">
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<a class="back-to-project" href="../#music/remote-object">&larr; Back to the project</a>
+
+<!-- ------------------------------------------------------------------
+     The object itself. Everything below this canvas is chrome that the
+     system draws around it; everything on the object is drawn in WebGL.
+     ------------------------------------------------------------------ -->
+<canvas id="stage"></canvas>
+
+<!-- Entry. A window from a machine that has half-remembered what a
+     window is: it has a close box, but closing is not one of the things
+     it can do. -->
+<div class="veil" id="veil">
+  <div class="win" id="win" role="dialog" aria-labelledby="winTitle" aria-modal="true">
+    <div class="win-bar">
+      <span class="win-name" id="winTitle">remote object</span>
+      <span class="win-box" id="winClose" title="close" aria-hidden="true">&#215;</span>
+    </div>
+
+    <!-- There is no button. The transfer is already running when you
+         arrive; you have interrupted it rather than started it. It
+         stops of its own accord at `listener present`, and the only
+         way past that line is to hold still. -->
+    <div class="win-body" id="winRoute">
+      <p class="win-head" id="winHead">RECEIVING OBJECT</p>
+      <hr class="win-rule">
+      <dl class="win-fields" id="winFields">
+        <dt>origin</dt><dd id="fOrigin">[unresolved]</dd>
+        <dt>status</dt><dd id="fStatus">reachable</dd>
+        <dt>type</dt><dd id="fType">unknown</dd>
+      </dl>
+      <hr class="win-rule">
+      <pre class="win-log" id="routeLog" aria-live="polite"></pre>
+      <div class="win-meter" aria-hidden="true"><i id="routeMeter"></i></div>
+    </div>
+
+    <div class="win-body" id="winFail" hidden>
+      <p class="win-head">CANNOT RENDER OBJECT</p>
+      <hr class="win-rule">
+      <p class="win-note" id="failNote"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Diagnostics. The system is not explaining itself to you; it is
+     talking to itself where you happen to be able to see it. -->
+<div class="hud" id="hud" hidden>
+  <div class="hud-top">
+    <span>REMOTE OBJECT</span>
+    <span id="hudSession">CLIENT UNREGISTERED</span>
+  </div>
+
+  <div class="hud-read" id="hudRead" hidden>
+    <span class="hud-code" id="hudCode"></span>
+    <span class="hud-name" id="hudName"></span>
+    <span class="hud-face" id="hudFace"></span>
+  </div>
+
+  <div class="hud-foot">
+    <span id="hudMode">HALO</span>
+    <span id="hudPlay" hidden></span>
+  </div>
+</div>
+
+<!-- Grade. Kept deliberately light: two thin passes, no VHS, no
+     chromatic aberration. Disabled entirely for reduced motion. -->
+<div class="grade" aria-hidden="true">
+  <div class="grade-scan"></div>
+  <div class="grade-grain"></div>
+  <div class="grade-vig"></div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

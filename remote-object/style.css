@@ -1,0 +1,300 @@
+/* ==========================================================
+   REMOTE OBJECT
+   Chrome only. Everything that is part of the object itself
+   is drawn in WebGL; this file styles the few flat surfaces
+   the system puts in front of it.
+   ========================================================== */
+
+:root {
+  --ink:        #070a0a;   /* the dark the object hangs in     */
+  --panel:      #0b1011;
+  --rule:       #44514d;
+  --dim:        #62726c;
+  --text:       #8b9a94;
+  --bright:     #c6d1cd;
+  --lcd:        #a5b69b;   /* the Receiver's backlight         */
+  --bar-a:      #2b3c46;   /* title bar, remembered slightly   */
+  --bar-b:      #16232a;   /* wrong                            */
+  --mono: ui-monospace, "DejaVu Sans Mono", "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  /* the object is grabbed, not scrolled */
+  touch-action: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+#stage.is-over   { cursor: grab; }
+#stage.is-held   { cursor: grabbing; }
+#stage.is-ready  { cursor: pointer; }
+
+[hidden] { display: none !important; }
+
+
+/* ----------------------------------------------------------
+   Entry window
+   ---------------------------------------------------------- */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(38, 62, 60, .13), rgba(5, 8, 8, .97) 58%),
+    var(--ink);
+  transition: opacity .5s ease;
+}
+.veil.is-going { opacity: 0; pointer-events: none; }
+
+.win {
+  width: min(430px, 100%);
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .82);
+  transition: transform .5s ease, opacity .35s ease;
+}
+
+/* It does not open. It assembles, in the order a machine would put a
+   window together if it had only been told what one looks like: frame,
+   then contents, and one row that lands in the wrong place and has to
+   be corrected while you are already reading it. */
+.win-bar { animation: barIn .2s steps(3) both; }
+.win-body { animation: bodyIn .45s .16s ease-out both; overflow: hidden; }
+
+@keyframes barIn { from { opacity: 0; transform: scaleX(.2); transform-origin: left; } }
+@keyframes bodyIn {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 460px; }
+}
+
+#fStatus { animation: misplaced 1.1s .55s ease-in-out both; }
+@keyframes misplaced {
+  0%, 48% { transform: translate(19px, -1px); color: var(--dim); }
+  100% { transform: none; }
+}
+
+/* Closing it is allowed. Staying closed is not. */
+.veil.is-shut { opacity: 0; pointer-events: none; }
+.veil.is-back .win { transform: translate(26px, -14px); }
+
+.win-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 4px 4px 9px;
+  background: linear-gradient(180deg, var(--bar-a), var(--bar-b));
+  border-bottom: 1px solid var(--rule);
+}
+.win-name {
+  font-size: 10px;
+  letter-spacing: .2em;
+  color: #9fb2ad;
+  text-transform: lowercase;
+}
+/* The close box is present because the system remembers that windows
+   have one. It is not connected to anything. */
+.win-box {
+  width: 15px;
+  height: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  color: #8ea19c;
+  border: 1px solid #4d5d59;
+  background: #1b2729;
+  cursor: pointer;
+}
+.win-box.is-refused { animation: refuse .28s steps(2) 2; }
+@keyframes refuse { 50% { background: #35464a; color: #cfdcd8; } }
+
+.win-body { padding: 20px 22px 22px; }
+
+.win-head {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: .19em;
+  color: var(--bright);
+}
+.win-rule { height: 0; margin: 14px 0; border: 0; border-top: 1px solid var(--rule); }
+
+.win-fields {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 7px 16px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.win-fields dt { color: var(--dim); }
+.win-fields dd { margin: 0; color: var(--text); }
+
+.win-btn {
+  margin-top: 4px;
+  padding: 9px 18px;
+  border: 1px solid #6a7b76;
+  background: #17201f;
+  color: var(--bright);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: .16em;
+  cursor: pointer;
+}
+.win-btn:hover  { background: #223030; }
+.win-btn:active { background: #2b3b3a; }
+.win-btn:focus-visible { outline: 1px solid var(--lcd); outline-offset: 2px; }
+
+.win-log {
+  margin: 14px 0 0;
+  min-height: 108px;
+  font: 11px/1.75 var(--mono);
+  color: var(--dim);
+  white-space: pre;
+}
+.win-log b { font-weight: normal; color: var(--text); }
+
+/* Chunky segmented meter, the way a 2001 installer drew one. */
+.win-meter {
+  margin-top: 14px;
+  height: 13px;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  background: #0a0f10;
+}
+.win-meter i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background:
+    repeating-linear-gradient(90deg,
+      #6f8a80 0 6px, transparent 6px 9px);
+  transition: width .18s linear;
+}
+
+.win-note { margin: 0; font-size: 11px; line-height: 1.6; color: var(--dim); }
+
+
+/* ----------------------------------------------------------
+   Diagnostics
+   ---------------------------------------------------------- */
+
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  font-size: 9px;
+  letter-spacing: .17em;
+  color: var(--dim);
+}
+
+.hud-top, .hud-foot {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hud-top  { top: calc(15px + env(safe-area-inset-top)); }
+.hud-foot { bottom: calc(15px + env(safe-area-inset-bottom)); }
+
+#hudPlay { color: var(--lcd); }
+
+/* Sits low-left, above the footer, and reports what the pointer is on.
+   Three fields, because that is what the object has to say: what it is
+   called, what it is, and which way round it happens to be. */
+.hud-read {
+  position: absolute;
+  left: 18px;
+  bottom: calc(38px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px 0 5px 10px;
+  border-left: 1px solid var(--rule);
+}
+.hud-code { color: var(--dim); }
+.hud-name { font-size: 11px; letter-spacing: .13em; color: var(--bright); }
+.hud-face { color: var(--lcd); }
+
+
+/* ----------------------------------------------------------
+   Grade
+   Two thin passes and a vignette. No VHS, no aberration --
+   the wrongness lives in the object, not in a filter.
+   ---------------------------------------------------------- */
+
+.grade { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+.grade > * { position: absolute; inset: 0; }
+
+.grade-scan {
+  /* K-4 drives these: ring modulation puts interference across the
+     picture, delay and bit reduction coarsen it. */
+  opacity: calc(.07 + var(--fx-scan, 0) * .17);
+  background: repeating-linear-gradient(0deg,
+    transparent 0 3px, rgba(170, 205, 192, .16) 3px 4px);
+}
+
+.grade-grain {
+  opacity: calc(.035 + var(--fx-grain, 0) * .085);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 1.1s steps(4) infinite;
+}
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-3%, 2%); }
+  50%  { transform: translate(2%, -3%); }
+  75%  { transform: translate(-2%, -2%); }
+  100% { transform: translate(0, 0); }
+}
+
+.grade-vig {
+  background: radial-gradient(circle at 50% 48%,
+    transparent 46%, rgba(0, 0, 0, .52) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grade-grain { animation: none; }
+  .grade-scan  { opacity: .04; }
+  .veil        { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .hud-top, .hud-foot { font-size: 8px; letter-spacing: .13em; }
+  .hud-read { max-width: 60vw; }
+}
+
+/* Added for the portfolio: the way back to the project page, above everything else on the page. */
+.back-to-project {
+  position: fixed; top: 10px; left: 10px; z-index: 1000; padding: 6px 10px;
+  font: 11px/1.2 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #cfd8c6; background: rgba(7, 10, 10, 0.78); border: 1px solid rgba(165, 182, 155, 0.45); text-decoration: none;
+}
+.back-to-project:hover, .back-to-project:focus-visible { color: #fff; border-color: #a5b69b; }

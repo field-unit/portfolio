@@ -485,6 +485,8 @@ window.DeskTitle = (function () {
   const shelfHint = "Swipe along the shelf · tap the object in front to open it";
   const countText = pad2(projects.length) + " projects on the desk";
   $("hud-bl").textContent = idleHint;
+  // On a short desk the hint moves up beside the header's links, where there is room (see desk.css).
+  $("top-hint").textContent = idleHint;
   $("hud-br").textContent = countText;
 
   /* ---- what each object opens ---- */
@@ -1102,7 +1104,8 @@ window.DeskTitle = (function () {
     const jobs = cv.experience.map((j) => el("div", { class: "job" }, [
       el("h3", { class: "role", text: j.role + ", " + j.org }),
       el("p", { class: "dates", text: j.dates }),
-      el("p", { class: "desc", text: j.text })
+      el("p", { class: "desc", text: j.text }),
+      j.points && j.points.length ? el("ul", { class: "points" }, j.points.map((t) => el("li", { text: t }))) : null
     ]));
     const skills = el("dl", { class: "skills" }, cv.skills.map((s) => el("div", {}, [el("dt", { text: s.group }), el("dd", { text: s.items })])));
     const contact = el("p", { class: "contact-lines" }, cv.contact.map((c) => el("a", { href: c.href, text: c.label })));
@@ -1115,9 +1118,13 @@ window.DeskTitle = (function () {
       el("section", {}, [el("h2", { text: "Education" }), el("p", { text: cv.education })]),
       el("section", {}, [el("h2", { text: "Skills" }), skills]),
       el("section", {}, [el("h2", { text: "Also" }), el("p", { text: cv.extra })]),
-      el("section", {}, [el("h2", { text: "Contact" }), contact, contactForm(cv.form),
-        // The page is set up to print as a plain document, which also makes a PDF to attach.
-        el("p", {}, [el("button", { type: "button", class: "textlink printlink", text: "Print or save as PDF", onclick: () => window.print() })])])
+      el("section", {}, [el("h2", { text: "Contact" }), contact,
+        // The CV as a PDF to attach, where the site has one (as pages.py); otherwise, and in the offline file, the page
+        // prints as a plain document, which also makes a PDF.
+        cv.pdf ? el("p", { class: "cvfile" }, [el("a", { class: "textlink", href: cv.pdf.href, download: true }, [
+          text("Download CV "), el("span", { class: "cvfile__size", text: "(PDF, " + cv.pdf.kb + " KB)" })])]) : null,
+        contactForm(cv.form),
+        cv.pdf ? null : el("p", {}, [el("button", { type: "button", class: "textlink printlink", text: "Print or save as PDF", onclick: () => window.print() })])])
     ];
   }
 

@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en-GB" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found — James Mason</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#dfe2d8">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script>document.documentElement.className = document.documentElement.className.replace("no-js", "js");</script>
+
+<style>
+/* Desk portfolio — calm and functional, like a drawing office: squared paper, graphite type set in the
+   machine face that goes with the dotted heading, square corners, and one oxide signal. Reading stays plain
+   HTML; the desk of objects, with a place card for each, is the navigation. */
+
+:root {
+  color-scheme: light;
+  --bg: #dfe2d8;
+  --bg-2: #d6dacd;
+  --panel: #ecefe5;
+  --panel-2: #e5e8dd;
+  --line: #c9cec0;
+  --line-2: #aeb4a3;
+  --ink: #1b201b;
+  --ink-2: #3e443c;
+  --muted: #5e645a;
+  --dim: #949a8c;
+  --accent: #b2461f;
+  --accent-text: #93360f;
+  /* One face throughout, to go with the heading printed in dots: the system's own machine type. */
+  --mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --sans: var(--mono);
+  --label: 500 0.68rem/1.5 var(--mono);
+  --radius: 4px;
+  --wrap: 84rem;
+  --gutter: clamp(1rem, 3vw, 2rem);
+  --readbar: 2.9rem; /* the slim bar while reading, leaving the screen to the work */
+  --shadow: 0 1px 2px rgba(31, 31, 29, 0.06), 0 8px 24px rgba(31, 31, 29, 0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+body {
+  margin: 0; color: var(--ink); font: 400 0.9rem/1.75 var(--mono); font-variant-numeric: tabular-nums;
+  min-height: 100vh; min-height: 100dvh;
+  /* Faint squared paper, the same grid the desk's board is ruled with. */
+  background: radial-gradient(circle, rgba(27, 32, 27, 0.06) 1px, transparent 1.4px) 0 0 / 22px 22px, var(--bg);
+}
+img { display: block; max-width: 100%; height: auto; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: var(--ink); text-underline-offset: 0.2em; text-decoration-color: var(--line-2); }
+a:hover { text-decoration-color: var(--accent); }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+h1, h2, h3, h4, p, figure { margin: 0; }
+ul, ol { margin: 0; padding: 0; }
+::selection { background: var(--accent); color: var(--ink); }
+
+.skip { position: absolute; left: 1rem; top: -10rem; z-index: 50; padding: 0.5rem 0.9rem; border-radius: 3px; background: var(--ink); color: var(--panel); font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; }
+.skip:focus { top: 0.6rem; }
+.eyebrow { font: var(--label); letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+
+/* The desk page is fitted to the window: the links, the name, the filters, the desk and the footer share the
+   height between them, and whatever is left goes to the desk, which is the thing worth the room. Nothing is
+   clipped to make that happen — if the window is very short, or the text is enlarged, the page simply scrolls
+   as any other page would. Reading a project is an ordinary scrolling document. */
+body[data-view="desk"] { display: flex; flex-direction: column; }
+body[data-view="desk"] > main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+body[data-view="desk"] .deck { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+body[data-view="desk"] .stage { flex: 1 1 0; min-height: 11rem; }   /* all the room that is left, and no more */
+
+/* ---- frame ---- */
+/* `width: 100%` matters on the desk page, where these are flex items: with auto side margins and no width
+   they would otherwise shrink to fit their text instead of holding the column. */
+.top, .intro, .desk, .reader, .index, .bottom { width: 100%; max-width: var(--wrap); margin-inline: auto; padding-inline: var(--gutter); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem 2rem; flex-wrap: wrap; padding-block: 1rem; }
+.brand { display: flex; align-items: center; gap: 0.25rem 0.75rem; flex-wrap: wrap; color: var(--ink); text-decoration: none; }
+.brand__name { font: 500 0.78rem/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; }
+body[data-view="desk"] .brand { display: none; }   /* the plate below is the name */
+body[data-view="desk"] .top { justify-content: flex-end; }
+.utilities { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.utilities a, .textlink { display: inline-block; padding: 0.4rem 0.8rem; border: 1px solid var(--line-2); border-radius: 3px; font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; background: transparent; }
+.utilities a:hover, .textlink:hover { border-color: var(--ink); color: var(--ink); }
+.utilities a[aria-current="page"] { border-color: var(--ink); background: var(--ink); color: var(--panel); }
+.bottom { display: flex; justify-content: space-between; gap: 0.6rem 1rem; flex-wrap: wrap; padding-block: 0 2rem; font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.footrule { display: block; flex-basis: 100%; max-width: 100%; margin-bottom: 1rem; }   /* the printed rule, in dots (grain.js) */
+
+/* ---- the name, projected on the wall behind the desk (desk view only) ---- */
+.intro { position: relative; z-index: 1; padding-block: clamp(0.9rem, 2.4vh, 1.8rem) 0.2rem; text-align: center; }
+.intro .eyebrow { margin-top: 0.8rem; }
+.projection { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
+/* The frame is drawn a dot per canvas pixel and blown up square (title.js); a faint green light spills round it. */
+.title { display: block; max-width: 100%; margin: 0 auto; image-rendering: pixelated; filter: drop-shadow(0 0 16px rgba(140, 170, 85, 0.3)); }
+.projection__pause {
+  position: absolute; right: 0.4rem; bottom: 0.4rem; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; padding: 0;
+  border: 1px solid rgba(140, 170, 85, 0.6); border-radius: 2px; background: rgba(14, 16, 13, 0.75); color: #8caa55; opacity: 0.6;
+}
+.projection:hover .projection__pause, .projection__pause:focus-visible, .projection__pause[aria-pressed="true"] { opacity: 1; }
+.projection__pause span { width: 0.52rem; height: 0.58rem; box-sizing: border-box; border-inline: 0.17rem solid currentColor; }   /* two bars */
+.projection__pause[aria-pressed="true"] span { width: 0; height: 0; border: 0; border-left: 0.52rem solid currentColor; border-block: 0.32rem solid transparent; }   /* play */
+.intro__line { margin-top: 0.45rem; font: var(--label); letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+.intro__line b { font-weight: 500; color: var(--ink-2); }
+/* What the work covers, in one quiet line under the role. */
+.intro__focus { margin-top: 0.15rem; font: 400 0.64rem/1.5 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.intro__plain { font: 500 1.6rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---- the desk: every project as an object, each with a place card ---- */
+/* The desk's room: one wall behind the name and the desk alike, so the projection hangs where the desk stands. */
+.deck {
+  position: relative; border-block: 1px solid var(--line);
+  background:
+    radial-gradient(circle, rgba(27, 32, 27, 0.09) 1px, transparent 1.5px) 0 0 / 20px 20px,
+    radial-gradient(120% 95% at 50% 38%, #eef0e8 0%, #e3e7db 68%, #d9ddd0 100%);
+}
+/* The filters sit under the desk, above the footer. */
+.filters { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; padding: 0.5rem var(--gutter) 0.8rem; }
+.chip { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.36rem 0.75rem 0.36rem 0.4rem; border: 1px solid var(--line-2); border-radius: 3px; background: var(--panel); font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.chip[data-filter=""] { padding-left: 0.75rem; }
+.chip__num { display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border: 1px solid currentColor; font: 500 0.58rem/1 var(--mono); letter-spacing: 0; }
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+.chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--panel); }
+.stage { position: relative; height: 22rem; overflow: hidden; }   /* the desk page overrides this with the room it has */
+.stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: pan-y; }
+.stage__status { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 1rem; text-align: center; font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+/* Labels: none until an object is pointed at, selected or reached with the keyboard; then one card stands
+   above it, joined by a short rule. They stay in the page for keyboards and screen readers. */
+.tags { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.tag {
+  position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 0.06rem; padding: 0.42rem 0.8rem 0.48rem;
+  border: 1px solid var(--line-2); border-radius: 3px; background: rgba(236, 239, 229, 0.97); box-shadow: var(--shadow);
+  color: var(--ink); text-align: center; text-decoration: none; white-space: nowrap;
+  opacity: 0; pointer-events: none; transform: translate3d(-9999px, 0, 0); transition: opacity 0.15s ease;
+}
+.tag::after { content: ""; position: absolute; left: var(--lead, 50%); top: 100%; width: 1px; height: 15px; background: var(--ink-2); opacity: 0.4; }
+.tag[data-side="below"]::after { top: auto; bottom: 100%; }
+.tag[data-tail="false"]::after { display: none; }   /* stacked labels: only the one beside the object points at it */
+.tag[data-show="true"], .tag:focus-visible { z-index: 3; opacity: 1; pointer-events: auto; }
+.tag[data-faded="true"]:not(:focus-visible) { visibility: hidden; }
+.tag:hover { border-color: var(--ink-2); }
+.tag__cat { font: 500 0.58rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.tag__title { font: 500 0.84rem/1.3 var(--mono); letter-spacing: 0.02em; text-transform: uppercase; }
+.tag__open { margin-top: 0.1rem; font: 500 0.62rem/1.3 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-text); }
+.tag:focus-visible { outline-offset: 2px; }
+
+/* Category names printed on the board, at the start of each group's rule. */
+.grouplabels { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.grouplabel {
+  position: absolute; left: 0; top: 0; display: flex; align-items: baseline; gap: 0.5rem; white-space: nowrap;
+  transform: translate3d(-9999px, 0, 0); transition: opacity 0.3s ease;
+  font: 500 0.6rem/1.2 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
+}
+.grouplabel b { font-weight: 500; color: var(--accent-text); }
+.grouplabel[data-faded="true"] { opacity: 0.3; }
+
+/* The shelf's steps (phones). */
+.shelfnav {
+  position: absolute; top: 50%; z-index: 3; display: none; width: 2.75rem; height: 2.75rem; margin-top: -1.375rem;
+  border: 1px solid var(--line-2); border-radius: 3px; background: rgba(236, 239, 229, 0.92); box-shadow: 0 1px 2px rgba(27, 32, 27, 0.08);
+  font-size: 1.35rem; line-height: 1; color: var(--ink);
+}
+.stage[data-mode="shelf"] .shelfnav { display: grid; place-items: center; }
+.shelfnav--prev { left: 0.5rem; }
+.shelfnav--next { right: 0.5rem; }
+.shelfnav:disabled { opacity: 0.3; cursor: default; }
+
+/* The PC's two-choice menu. */
+.pcmenu { position: absolute; left: 0; top: 0; z-index: 6; width: 16.5rem; padding: 0.75rem 0.6rem 0.6rem; border: 1px solid var(--line-2); border-radius: 4px; background: var(--panel); box-shadow: var(--shadow); }
+.pcmenu__title { margin: 0 0 0.4rem 0.35rem; font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.pcmenu__item { display: grid; padding: 0.5rem 0.6rem; border-radius: 3px; color: var(--ink); text-decoration: none; }
+.pcmenu__item + .pcmenu__item { margin-top: 0.15rem; }
+.pcmenu__item:hover, .pcmenu__item:focus-visible { background: var(--bg-2); }
+.pcmenu__item span { font: 500 0.84rem/1.3 var(--mono); letter-spacing: 0.02em; text-transform: uppercase; }
+.pcmenu__item small { font: 400 0.7rem/1.4 var(--mono); color: var(--muted); }
+.pcmenu__close { position: absolute; top: 0.3rem; right: 0.45rem; width: 1.8rem; height: 1.8rem; border: 0; border-radius: 3px; background: none; font-size: 1.1rem; line-height: 1; color: var(--muted); }
+.pcmenu__close:hover { background: var(--bg-2); color: var(--ink); }
+
+.hud { position: absolute; inset: 0; z-index: 1; pointer-events: none; font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+/* A short desk needs its bottom strip for the category names, so the hint stands down. The shelf keeps its
+   counter, which says where you are along it. */
+.stage[data-short="true"]:not([data-mode="shelf"]) .hud { display: none; }
+.hud span { position: absolute; bottom: 1rem; }
+.hud__bl { left: 1.4rem; display: flex; align-items: center; gap: 0.5rem; }
+.hud__bl::before { content: ""; width: 0.35rem; height: 0.35rem; background: var(--dim); }
+.stage[data-hovering="true"] .hud__bl::before { background: var(--accent); }
+.hud__br { right: 1.4rem; text-align: right; color: var(--muted); }
+
+/* The way to the section's projects as a plain list, beside its filter chip. */
+.chip--go { text-decoration: none; }
+.chip--go:hover { border-color: var(--ink); color: var(--ink); }
+
+/* No JavaScript, or no WebGL: the name as plain type, a line saying why, and every project listed below instead
+   of the desk. Each project still has its own page. */
+body.no-3d .stage, body.no-3d .filters, .no-js .stage, .no-js .filters, .no-js .projection { display: none; }
+.deck__note { display: none; padding: 0.9rem var(--gutter) 1.1rem; text-align: center; font: var(--label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.no-js .deck__note, body.no-3d .deck__note { display: block; }
+.no-js #desk-title { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; white-space: normal; font: 500 1.6rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* ---- reading: the desk steps aside for a slim bar ---- */
+.readbar { display: none; }
+body:not([data-view="desk"]) .deck { display: none; }
+body:not([data-view="desk"]) .readbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 0.8rem; min-height: var(--readbar);
+  padding: 0.45rem var(--gutter); border-block: 1px solid var(--line); background: rgba(223, 226, 216, 0.95); overflow-x: auto; scrollbar-width: none;
+}
+.readbar__back { flex: none; padding: 0.34rem 0.75rem; border: 1px solid var(--ink); border-radius: 3px; background: var(--ink); color: var(--panel); font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; }
+.readbar__links { display: flex; gap: 0.25rem; }
+.readbar__links a { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.26rem 0.55rem 0.26rem 0.25rem; border-radius: 3px; color: var(--ink-2); font: var(--label); letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; white-space: nowrap; }
+.readbar__links a:hover { background: var(--bg-2); }
+.readbar__links a[aria-current="true"] { background: var(--panel); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink); }
+.readbar__links .chip__num { width: 1.1rem; height: 1.1rem; }
+
+/* ---- the index, and the plain list shown in place of the desk when there is no WebGL ---- */
+.desk, .index { padding-block: 2.2rem 3rem; }
+.js body:not(.no-3d) #desk-view { display: none; }
+.section-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.3rem; }
+.section-head :is(h1, h2) { font: 500 0.82rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.section-head--large :is(h1, h2) { font: 500 clamp(1.1rem, 0.9rem + 0.7vw, 1.5rem)/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.section-head :is(h1, h2):focus { outline: none; }
+.index__note { max-width: 64ch; margin: -0.4rem 0 1.2rem; font-size: 0.82rem; line-height: 1.75; color: var(--ink-2); }
+/* The index: one compact row per project, a small picture beside what it is, and what kind of work. */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 25rem), 1fr)); gap: 0.35rem 1.2rem; list-style: none; }
+.card { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); align-items: start; gap: 0.95rem; height: 100%; padding: 0.55rem; border: 1px solid transparent; border-radius: var(--radius); color: var(--ink); text-decoration: none; }
+.card:hover, .card:focus-visible { border-color: var(--line-2); background: var(--panel); }
+.card__media { position: relative; display: block; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
+.card__media img { width: 100%; height: 100%; object-fit: contain; }
+.card__text { display: grid; gap: 0.2rem; min-width: 0; }
+.card__title { font: 500 0.84rem/1.35 var(--mono); letter-spacing: 0.03em; text-transform: uppercase; }
+.card__short { font: 400 0.76rem/1.55 var(--mono); color: var(--ink-2); }
+.card__meta { font: 400 0.66rem/1.55 var(--mono); letter-spacing: 0.02em; color: var(--muted); }
+.card .noimg { display: grid; place-items: center; height: 100%; padding: 0.3rem; text-align: center; font: 500 0.56rem/1.3 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+/* The kind of work (professional, freelance, university, personal): a small plain tag, never a ranking. */
+.kind { display: inline-block; padding: 0 0.35em; border: 1px solid var(--line-2); border-radius: 2px; font: 500 0.58rem/1.55 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); vertical-align: 0.05em; }
+.index__group { margin-top: 2.2rem; scroll-margin-top: calc(var(--readbar) + 1rem); }
+.index__group :is(h2, h3) { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.7rem; padding-top: 0.8rem; border-top: 1px solid var(--line); font: 500 0.82rem/1.3 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.index__group :is(h2, h3) span { display: grid; place-items: center; width: 1.35rem; height: 1.35rem; background: var(--ink); color: var(--panel); font: 500 0.6rem/1 var(--mono); }
+
+/* ---- reading view ---- */
+.reader { padding-block: 1.6rem 3rem; }
+.reader, .story { scroll-margin-top: calc(var(--readbar) + 1rem); }
+.folio { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); box-shadow: var(--shadow); }
+.folio__head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding: 1.2rem clamp(1rem, 2.5vw, 1.8rem) 1.1rem; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.folio__title { margin-top: 0.35rem; font: 500 clamp(1rem, 0.85rem + 0.6vw, 1.35rem)/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.folio__body { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); min-height: 24rem; }
+.folio__body--single { grid-template-columns: minmax(0, 1fr); }
+.plist { padding: 0.6rem; border-right: 1px solid var(--line); }
+.plist a { position: relative; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); padding: 0.6rem 0.7rem; border-radius: 3px; color: var(--ink-2); text-decoration: none; font: 500 0.78rem/1.4 var(--mono); letter-spacing: 0.02em; text-transform: uppercase; }
+.plist a + a { margin-top: 0.15rem; }
+.plist a .code { grid-row: span 2; font: 500 0.68rem/1.9 var(--mono); color: var(--muted); }
+.plist a small { margin-top: 0.2rem; font: 400 0.66rem/1.45 var(--mono); letter-spacing: 0.01em; text-transform: none; color: var(--muted); }
+.plist a:hover { background: var(--bg); color: var(--ink); }
+.plist a[aria-current="true"] { background: var(--bg-2); color: var(--ink); }
+.plist a[aria-current="true"] .code { color: var(--accent-text); }
+
+.story { min-width: 0; padding: 1.6rem clamp(1rem, 3vw, 2.4rem) 2.4rem; }
+.story h1 { margin: 0.5rem 0 1.2rem; font: 500 clamp(1.25rem, 0.95rem + 1.2vw, 1.85rem)/1.2 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.story h1:focus { outline: none; }
+/* "My role": what I did, straight after the introduction, in one sentence and then the particulars. */
+.myrole { max-width: 72ch; margin-top: 1.6rem; padding: 1rem 1.15rem 1.1rem; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--panel-2); }
+.myrole h2 { margin-bottom: 0.45rem; font: var(--label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.myrole__lead { font: 500 0.84rem/1.7 var(--mono); color: var(--ink); }
+.myrole ul { display: grid; gap: 0.4rem; margin-top: 0.7rem; list-style: none; }
+.myrole li { position: relative; padding-left: 1.1rem; font: 400 0.78rem/1.7 var(--mono); letter-spacing: 0.01em; color: var(--ink-2); }
+.myrole li::before { content: ""; position: absolute; left: 0.15rem; top: 0.62em; width: 0.32rem; height: 0.32rem; background: var(--accent); }
+.summary { max-width: 68ch; margin-top: 1.3rem; font-size: 0.86rem; line-height: 1.85; }
+/* "Try the instrument": the one filled button on a project page. */
+.action { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.1rem; margin-top: 1.3rem; }
+.action__go { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1.1rem; border: 1px solid var(--ink); border-radius: 3px; background: var(--ink); color: var(--panel); font: 500 0.74rem/1.2 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; }
+.action__go:hover { border-color: var(--accent); background: var(--accent); color: var(--panel); }
+.action__note { max-width: 46ch; font: 400 0.72rem/1.6 var(--mono); color: var(--muted); }
+
+.gallery figure { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); }
+/* Without JavaScript: every picture, one under another. */
+.gallery--static { display: grid; gap: 1rem; }
+.gallery--static img { width: 100%; height: auto; max-height: 75vh; object-fit: contain; }
+.gallery__main { width: 100%; height: clamp(16rem, 48vh, 30rem); object-fit: contain; }
+.gallery figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.2rem 1.2rem; padding: 0.6rem 0.8rem; border-top: 1px solid var(--line); background: var(--panel); font: 400 0.72rem/1.55 var(--mono); letter-spacing: 0.02em; color: var(--ink-2); }
+.gallery__credit { font-size: 0.66rem; color: var(--muted); }
+.gallery__bar { display: flex; justify-content: space-between; align-items: start; gap: 0.6rem 1rem; flex-wrap: wrap; margin-top: 0.7rem; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 0.45rem; list-style: none; }
+.thumb { width: 4.4rem; height: 3.3rem; padding: 0.15rem; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
+.thumb img { width: 100%; height: 100%; object-fit: contain; border-radius: 2px; }
+.thumb[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+/* A collection shown whole (the patches): square tiles in the paper they were photographed on, so a stray
+   fibre or the shadow under a patch reads as part of the photograph rather than as a ragged cut. */
+.gallery--grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
+.gallery--grid figure { display: flex; flex-direction: column; background: var(--panel-2); border-color: var(--line); }
+.gallery--grid img { width: 100%; aspect-ratio: 1; object-fit: contain; }   /* each cut-out carries its own margin */
+.gallery--grid figure.fill img { object-fit: cover; }
+.gallery--grid figcaption { flex: 1; flex-direction: column; justify-content: start; gap: 0.1rem; padding: 0.5rem 0.7rem 0.6rem; font-size: 0.82rem; }
+.gallery--grid .gallery__credit { font-size: 0.74rem; }
+@media (max-width: 40rem) { .gallery--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; } }
+.gallery__steps { display: flex; align-items: center; gap: 0.45rem; }
+.gallery__count { margin-right: 0.35rem; font: 400 0.7rem/1.4 var(--mono); letter-spacing: 0.06em; color: var(--muted); }
+.step { width: 2.2rem; height: 2.2rem; border: 1px solid var(--line-2); border-radius: 3px; background: var(--panel); font: 500 0.95rem/1 var(--sans); box-shadow: var(--shadow); }
+.step:hover { border-color: var(--ink); }
+.step:active { background: var(--bg-2); }
+
+.modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 0.75rem; margin-top: 1.6rem; }
+.module { padding: 1rem 1.1rem 1.15rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); }
+.module h2 { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.6rem; font: 500 0.78rem/1.35 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.module h2 span { display: grid; place-items: center; width: 1.3rem; height: 1.3rem; border: 1px solid var(--ink); font: 500 0.6rem/1 var(--mono); }
+.module p { font-size: 0.78rem; line-height: 1.75; color: var(--ink-2); }
+.module ul { display: grid; gap: 0.3rem; list-style: none; }
+.module li { position: relative; padding-left: 1rem; font: 400 0.78rem/1.7 var(--mono); letter-spacing: 0.01em; color: var(--ink-2); }
+.module li::before { content: ""; position: absolute; left: 0.1rem; top: 0.6em; width: 0.32rem; height: 0.32rem; background: var(--ink-2); }
+.module .note { margin-top: 0.7rem; font: 400 0.72rem/1.6 var(--mono); color: var(--muted); }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1.4rem 2.2rem; margin-top: 1.8rem; padding-top: 1.3rem; border-top: 1px solid var(--line); }
+.facts h2 { margin-bottom: 0.7rem; font: var(--label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.facts p { max-width: 64ch; font: 400 0.78rem/1.7 var(--mono); letter-spacing: 0.01em; color: var(--ink-2); }
+.facts ul { display: grid; gap: 0.45rem; list-style: none; }
+.facts li { position: relative; padding-left: 1.1rem; font: 400 0.78rem/1.7 var(--mono); letter-spacing: 0.01em; color: var(--ink-2); }
+.facts li::before { content: ""; position: absolute; left: 0.15rem; top: 0.62em; width: 0.32rem; height: 0.32rem; background: var(--line-2); }
+.links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.links a { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.8rem; border: 1px solid var(--line-2); border-radius: 3px; font: var(--label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; }
+.links a:hover { border-color: var(--ink); color: var(--ink); }
+/* The contact form on the CV page (only once a form endpoint is set): plain fields in the page's type. */
+.cform { display: grid; gap: 0.9rem; max-width: 34rem; margin-top: 1.1rem; }
+.cform__field { display: grid; gap: 0.35rem; font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.cform input, .cform textarea { width: 100%; padding: 0.6rem 0.7rem; border: 1px solid var(--line-2); border-radius: 3px; background: #fff; color: var(--ink); font: 400 1rem/1.5 var(--mono); letter-spacing: 0; text-transform: none; }
+.cform textarea { resize: vertical; min-height: 8rem; }
+.cform input:focus, .cform textarea:focus { border-color: var(--ink); outline: none; }
+.cform__trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.cform__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; }
+.cform button:disabled { opacity: 0.6; cursor: wait; }
+.cform__status { font: 400 0.76rem/1.6 var(--mono); color: var(--ink-2); }
+.cform__note { font: 400 0.72rem/1.6 var(--mono); color: var(--muted); }
+
+/* Technical drawings ("sheets"): one to a sheet, on white with room round it, the title and a line on what kind of
+   drawing it is beneath. Click or tap to enlarge. */
+.sheets { display: grid; gap: 1.4rem; margin-top: 1.6rem; }
+.sheet { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+.sheet__open { position: relative; display: block; width: 100%; padding: clamp(0.8rem, 2.6vw, 2rem); border: 0; background: #fff; cursor: zoom-in; }
+.sheet__open img { display: block; width: 100%; height: auto; max-height: 72vh; object-fit: contain; }
+.sheet__zoom { position: absolute; right: 0.7rem; bottom: 0.7rem; padding: 0.3rem 0.6rem; border: 1px solid var(--line-2); border-radius: 3px; background: rgba(255, 255, 255, 0.94); font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); opacity: 0; transition: opacity 0.2s; }
+.sheet__open:hover .sheet__zoom, .sheet__open:focus-visible .sheet__zoom { opacity: 1; }
+@media (hover: none) { .sheet__zoom { opacity: 1; } }
+.sheet figcaption { display: grid; gap: 0.25rem; padding: 0.75rem 1rem 0.85rem; border-top: 1px solid var(--line); }
+.sheet__title { font: 500 0.74rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink); }
+.sheet__caption { max-width: 72ch; font: 400 0.76rem/1.65 var(--mono); color: var(--ink-2); }
+
+/* The enlarged drawing, over everything: a thin bar of controls and the sheet itself, zoomable and pannable. */
+.viewer { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(24, 26, 23, 0.97); color: #eef0e8; animation: viewer-in 0.18s ease-out; }
+.viewer[hidden] { display: none; }
+@keyframes viewer-in { from { opacity: 0; } }
+.viewer__bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; padding: 0.6rem clamp(0.75rem, 2vw, 1.4rem); border-bottom: 1px solid rgba(255, 255, 255, 0.12); background: #181a17; }
+.viewer__text { min-width: 0; }
+.viewer__title { font: 500 0.74rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.viewer__caption { max-width: 80ch; margin-top: 0.15rem; font: 400 0.72rem/1.5 var(--mono); color: #b9beb1; }
+.viewer__tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.viewer__count { margin-right: 0.4rem; font: 400 0.7rem/1 var(--mono); color: #b9beb1; }
+.viewer__btn { min-width: 2.3rem; height: 2.3rem; padding: 0 0.55rem; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 3px; background: transparent; color: #eef0e8; font: 500 0.8rem/1 var(--mono); letter-spacing: 0.06em; }
+.viewer__btn:hover { border-color: #fff; }
+.viewer :focus-visible { outline-color: #fff; }
+.viewer__stage { position: relative; overflow: hidden; touch-action: none; cursor: grab; }
+.viewer__stage:active { cursor: grabbing; }
+.viewer__img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; background: #fff; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); user-select: none; -webkit-user-drag: none; }
+html.viewing { overflow: hidden; }
+
+.next { display: flex; justify-content: flex-end; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.next a { text-align: right; font: 500 0.86rem/1.4 var(--mono); letter-spacing: 0.03em; text-transform: uppercase; text-decoration: none; }
+.next a span { display: block; font: var(--label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.next a:hover { color: var(--accent-text); }
+
+/* ---- CV folio ---- */
+.cv .headline { margin-bottom: 1.2rem; font: 500 0.78rem/1.6 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.cv section { margin-top: 1.6rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
+.cv section > p { font-size: 0.8rem; line-height: 1.8; }
+.cv section > h2 { margin-bottom: 0.9rem; font: var(--label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+/* Each job: its title (a heading, first for screen readers) beside the dates, which sit in the left column. */
+.job { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 0.2rem 1.4rem; margin-bottom: 1.1rem; }
+.job .dates { grid-column: 1; grid-row: 1 / span 2; font: 400 0.7rem/1.9 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.job .role { grid-column: 2; grid-row: 1; font: 500 0.86rem/1.45 var(--mono); letter-spacing: 0.03em; text-transform: uppercase; }
+.job .desc { grid-column: 2; grid-row: 2; font-size: 0.78rem; line-height: 1.75; color: var(--ink-2); }
+.skills { display: grid; gap: 0.5rem; margin: 0; }
+.skills div { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 1.4rem; font-size: 0.8rem; }
+.skills dt { font: 500 0.72rem/1.75 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.skills dd { margin: 0; font: 400 0.78rem/1.7 var(--mono); letter-spacing: 0.01em; color: var(--ink-2); }
+.contact-lines { display: flex; flex-wrap: wrap; gap: 0.5rem 1.8rem; font: 500 0.95rem/1.5 var(--mono); letter-spacing: 0.02em; }
+.contact-lines a { text-decoration-color: var(--accent); }
+.printlink { margin-top: 1.1rem; }
+
+@media (max-width: 52rem) {
+  .intro { grid-template-columns: minmax(0, 1fr); }
+  .intro__text { grid-column: 1; justify-self: start; }
+  .folio__body { grid-template-columns: minmax(0, 1fr); }
+  .plist { display: flex; gap: 0.3rem; overflow-x: auto; padding: 0.5rem; border-right: 0; border-bottom: 1px solid var(--line); }
+  .plist a { flex: 0 0 auto; grid-template-columns: auto; max-width: 15rem; }
+  .plist a + a { margin-top: 0; }
+  .plist a .code { grid-row: auto; line-height: 1.3; }
+  .plist a small { display: none; }
+  .job, .skills div { grid-template-columns: minmax(0, 1fr); gap: 0.1rem; }
+  .job .dates, .job .role, .job .desc { grid-column: 1; grid-row: auto; }
+  .gallery__main { height: auto; aspect-ratio: 4 / 3; }
+}
+
+/* Short windows: the same page, with the air taken out of it rather than the desk. */
+@media (max-height: 760px) {
+  .top { padding-block: 0.55rem; }
+  .intro { padding-block: 0.6rem 0.1rem; }
+  .bottom { padding-block: 0 0.9rem; }
+  .footrule { margin-bottom: 0.55rem; }
+}
+@media (max-height: 620px) {
+  .intro { padding-block: 0.4rem 0; }
+  .intro__line { margin-top: 0.25rem; }
+  .filters { padding-block: 0.35rem 0.5rem; }
+}
+
+@media (max-width: 40rem) {
+  .top { padding-block: 0.5rem; }
+  .intro { padding-block: 0.7rem 0.1rem; }
+  .intro__line { margin-top: 0.4rem; font-size: 0.6rem; letter-spacing: 0.1em; }
+  .intro__focus { font-size: 0.56rem; letter-spacing: 0.06em; }
+  .card { grid-template-columns: 6rem minmax(0, 1fr); gap: 0.75rem; padding: 0.45rem 0.3rem; }
+  .filters {
+    flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start;
+    padding: 0.5rem var(--gutter) 0.7rem; scrollbar-width: none;
+    /* the last chip fades out at the edge, so it is clear the row carries on */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .filters:focus-within { -webkit-mask-image: none; mask-image: none; }   /* a chip reached by keyboard is never under the fade */
+  .chip { flex: 0 0 auto; }
+  .hud span { bottom: 0.8rem; }
+  .hud__bl { left: 1rem; max-width: calc(100% - 6.5rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .hud__bl::before { display: inline-block; margin-right: 0.45rem; vertical-align: 0.1em; }
+  .hud__br { right: 1rem; }
+  .stage:not([data-mode="shelf"]) .hud__br { display: none; }
+}
+
+
+/* A phone on its side: the desk needs every bit of the height, so the line of disciplines stands down and the filters
+   become one row that scrolls sideways, as on a phone held upright. */
+@media (max-height: 460px) and (orientation: landscape) {
+  .intro__focus { display: none; }
+  .filters { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-block: 0.3rem 0.45rem; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---- on paper: a project or the CV printed for an application ---- */
+@media print {
+  @page { margin: 16mm; }
+  body { background: #fff; color: #000; }
+  .skip, .utilities, .readbar, .deck, .title, .projection__pause, .footrule, .tags, .hud, .pcmenu,
+  .gallery__bar, .next, .shelfnav, .plist, .folio__head .textlink, .printlink, .viewer, .sheet__zoom, .action { display: none !important; }
+  .sheet { box-shadow: none; border-color: #ddd; }
+  .sheet__open img { max-height: 16cm; }
+  .folio__body { display: block; }          /* without the project list beside it, the story takes the page */
+  /* the words behind the dot-matrix heading take its place */
+  .visually-hidden { position: static; width: auto; height: auto; clip-path: none; font: 600 1.4rem/1.3 var(--sans); }
+  .top { border-bottom: 1px solid #ddd; }
+  .folio, .card__media, .gallery figure, .thumb, .myrole { border-color: #ddd; box-shadow: none; }
+  .gallery__main { height: auto; max-height: 11cm; }
+  .story a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.82em; color: #444; word-break: break-all; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  figure, .job, .module, .facts > div { break-inside: avoid; }
+  .reader, .index, .desk { padding-inline: 0; }
+}
+
+</style>
+</head>
+<!-- Built by build.py from content/desk.json and pages.py; the words are in the page, and app.js adds the desk. -->
+<body data-view="index">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/" id="brand"><span class="brand__name">James Mason</span></a>
+  <nav class="utilities" aria-label="Main"><a href="/projects/" data-nav="index">Project index</a><a href="/cv/" data-nav="cv">CV &amp; contact</a></nav>
+</header>
+<nav class="readbar" id="readbar" aria-label="Sections">
+  <a class="readbar__back" href="/">← The desk</a>
+  <div class="readbar__links" id="readbar-links"><a href="/projects/syntax-sound-system/" data-cat="sound" aria-current="false"><span class="chip__num">01</span><span>Sound systems</span></a><a href="/projects/homewhere-furniture/" data-cat="objects" aria-current="false"><span class="chip__num">02</span><span>Furniture &amp; hardware</span></a><a href="/projects/looop/" data-cat="music" aria-current="false"><span class="chip__num">03</span><span>Instruments &amp; software</span></a><a href="/projects/crate-packing-tool/" data-cat="making" aria-current="false"><span class="chip__num">04</span><span>Automation &amp; systems</span></a><a href="/projects/hand-embroidered-patches/" data-cat="personal" aria-current="false"><span class="chip__num">05</span><span>Personal &amp; craft</span></a><a href="/cv/" data-cat="cv" aria-current="false"><span class="chip__num">06</span><span>CV &amp; contact</span></a></div>
+</nav>
+<main id="main" tabindex="-1">
+  <section class="index" id="index-view" aria-labelledby="index-title">
+    <div class="section-head section-head--large"><h1 id="index-title">Page not found</h1><a class="textlink" href="/">The desk</a></div>
+    <p class="index__note">There is nothing at this address. Every project is listed below; the CV and contact details are under <a href="/cv/">CV &amp; contact</a>.</p>
+    <div id="index-groups"><section class="index__group"><h2><span aria-hidden="true">01</span>Sound systems · 09</h2><ul class="cards"><li><a class="card" href="/projects/syntax-sound-system/"><span class="card__media"><img src="/assets/img/syntax-render-480.webp" alt="" width="480" height="340" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Syntax Sound System</strong><span class="card__short">A modular PA system for small-to-mid-scale live music.</span><small class="card__meta"><span class="kind">Personal</span> · 2024–2025 · being built</small></span></a></li><li><a class="card" href="/projects/type-hf-range/"><span class="card__media" style="background:#bebebe"><img src="/assets/img/hf-web-hf1-front-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Type. HF range</strong><span class="card__short">A range of four hi-fi loudspeakers with solid-surface cabinets.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · 2021–2023 · released</small></span></a></li><li><a class="card" href="/projects/cinema-and-movement/"><span class="card__media"><img src="/assets/img/cinema-2-8-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Cinema and Movement ranges</strong><span class="card__short">Two ranges of cinema loudspeakers, one of them made for direct-view LED screens.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · released</small></span></a></li><li><a class="card" href="/projects/clarity-a-and-m/"><span class="card__media" style="background:linear-gradient(to bottom, #b9b5b1 4%, #bcb6b1 12%, #bbb7b4 21%, #bdb8b5 29%, #c0b8b4 38%, #c1b8b3 46%, #c1b8b3 54%, #c1b8b4 62%, #c1b8b3 71%, #c1b9b2 79%, #c1b9b2 88%, #c0b9b4 96%) left top / 50% 100% no-repeat, linear-gradient(to bottom, #bab5b0 4%, #bbb7b3 12%, #bcb8b4 21%, #beb9b5 29%, #c1b8b4 38%, #c1b9b3 46%, #c2b9b5 54%, #c2b9b5 62%, #c2b9b4 71%, #c2b9b4 79%, #c1b9b3 88%, #c1b8b4 96%) right top / 50% 100% no-repeat"><img src="/assets/img/clarity-m-stacks-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Clarity A and Clarity M</strong><span class="card__short">A home DJ audio system and a modular PA, for Mastersounds.</span><small class="card__meta"><span class="kind">Professional</span> · Mastersounds · through TPI Aerospace Limited · 2024–2025</small></span></a></li><li><a class="card" href="/projects/wilson-benesch-eminence/"><span class="card__media" style="background:#171717"><img src="/assets/img/wb-eminence-render-480.webp" alt="" width="480" height="393" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Eminence</strong><span class="card__short">Wilson Benesch&#x27;s flagship loudspeaker.</span><small class="card__meta"><span class="kind">Professional</span> · Wilson Benesch · 2017–2018 · released November 2018</small></span></a></li><li><a class="card" href="/projects/wilson-benesch-precision/"><span class="card__media" style="background:#212121"><img src="/assets/img/wb-precision-lineup-480.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Precision Series</strong><span class="card__short">Wilson Benesch&#x27;s entry-level loudspeaker range.</span><small class="card__meta"><span class="kind">Professional</span> · Wilson Benesch · 2017–2018 · released November 2018</small></span></a></li><li><a class="card" href="/projects/type-mfr/"><span class="card__media" style="background:linear-gradient(to bottom, #060709 4%, #08090a 12%, #090b0c 21%, #090b0c 29%, #090b0c 38%, #0a0a0c 46%, #090b0c 54%, #090b0c 62%, #090b0c 71%, #090b0c 79%, #0c0e10 88%, #0d0f11 96%) left top / 50% 100% no-repeat, linear-gradient(to bottom, #030303 4%, #050506 12%, #070709 21%, #09090b 29%, #0a0c0d 38%, #0d0f10 46%, #111315 54%, #15171b 62%, #191b1f 71%, #191b1f 79%, #121416 88%, #101213 96%) right top / 50% 100% no-repeat"><img src="/assets/img/mfr-exterior-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Type. MFR</strong><span class="card__short">A horn-loaded loudspeaker with a tall slatted enclosure.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · re-engineering</small></span></a></li><li><a class="card" href="/projects/type-totem-2/"><span class="card__media" style="background:#bebebe"><img src="/assets/img/totem-2-front-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Type. TOTEM 2</strong><span class="card__short">TPI&#x27;s flagship modular ground-stack system.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · released</small></span></a></li><li><a class="card" href="/projects/picture-wall-loudspeaker/"><span class="card__media"><img src="/assets/img/picture-wall-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Picture</strong><span class="card__short">A compact wall-mounted loudspeaker, shown as a concept.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · 2024 · concept</small></span></a></li></ul></section><section class="index__group"><h2><span aria-hidden="true">02</span>Furniture &amp; hardware · 04</h2><ul class="cards"><li><a class="card" href="/projects/homewhere-furniture/"><span class="card__media" style="background:linear-gradient(to right, #bec1c1 4%, #b4b5b5 12%, #b3b3b3 21%, #b3b3b3 29%, #b2b3b1 38%, #b1b2b0 46%, #b1b1af 54%, #b0b0af 62%, #b0b0ae 71%, #b0b0ae 79%, #b0b0af 88%, #afafae 96%) left top / 100% 50% no-repeat, linear-gradient(#98908e, #98908e) left bottom / 100% 50% no-repeat"><img src="/assets/img/homewhere-render-480.webp" alt="" width="480" height="340" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">homeWHERE furniture</strong><span class="card__short">A concept furniture range; the lounge chair and stool were prototyped.</span><small class="card__meta"><span class="kind">Freelance</span> · 2019–2025</small></span></a></li><li><a class="card" href="/projects/type-29-mixer/"><span class="card__media"><img src="/assets/img/type-29-product-front-480.webp" alt="" width="480" height="316" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Type. 29 mixer</strong><span class="card__short">A fully analogue mixer built from removable channel modules.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · 2023–2025 · publicly shown</small></span></a></li><li><a class="card" href="/projects/gmt-one-turntable/"><span class="card__media"><img src="/assets/img/gmt-released-detail-480.webp" alt="" width="480" height="306" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">GMT One turntable</strong><span class="card__short">Early development of a turntable system, released after I left Wilson Benesch.</span><small class="card__meta"><span class="kind">Professional</span> · Wilson Benesch · 2017–2018 · early development</small></span></a></li><li><a class="card" href="/projects/factory-staircase/"><span class="card__media"><img src="/assets/img/stairs-landing-480.webp" alt="" width="361" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Factory staircase</strong><span class="card__short">A staircase for TPI&#x27;s factory.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · installed</small></span></a></li></ul></section><section class="index__group"><h2><span aria-hidden="true">03</span>Instruments &amp; software · 04</h2><ul class="cards"><li><a class="card" href="/projects/looop/"><span class="card__media" style="background:linear-gradient(#646464, #646464) left top / 100% 50% no-repeat, linear-gradient(to right, #606060 4%, #5f5f5f 12%, #5e5e5e 21%, #5b5b5b 29%, #575757 38%, #565656 46%, #585858 54%, #5e5e5e 62%, #636363 71%, #646464 79%, #646464 88%, #646464 96%) left bottom / 100% 50% no-repeat"><img src="/assets/img/looop-render-480.webp" alt="" width="480" height="270" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Looop</strong><span class="card__short">A music-production concept for beginners.</span><small class="card__meta"><span class="kind">University</span> · Sheffield Hallam University · 2017 · final-year project</small></span></a></li><li><a class="card" href="/projects/seed-part-generators/"><span class="card__media" style="background:#c9c6bd"><img src="/assets/img/seed-chipseed-480.webp" alt="" width="480" height="382" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Seed part generators</strong><span class="card__short">Three desktop instruments that each generate a usable musical part.</span><small class="card__meta"><span class="kind">Personal</span> · 2026 · working prototypes</small></span></a></li><li><a class="card" href="/projects/remote-object/"><span class="card__media" style="background:#090b0c"><img src="/assets/img/remote-object-ring-480.webp" alt="" width="480" height="317" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Remote Object</strong><span class="card__short">A musical keyring you handle in the browser.</span><small class="card__meta"><span class="kind">Personal</span> · 2026 · browser prototype</small></span></a></li><li><a class="card" href="/projects/record-room/"><span class="card__media" style="background:#03111e"><img src="/assets/img/record-room-overview-480.webp" alt="" width="480" height="360" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Record room</strong><span class="card__short">A two-deck listening room in the browser.</span><small class="card__meta"><span class="kind">Personal</span> · 2026 · browser prototype</small></span></a></li></ul></section><section class="index__group"><h2><span aria-hidden="true">04</span>Automation &amp; systems · 03</h2><ul class="cards"><li><a class="card" href="/projects/crate-packing-tool/"><span class="card__media"><img src="/assets/img/crate-front-off-480.webp" alt="" width="480" height="361" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Crate packing tool</strong><span class="card__short">A 3D packing tool that plans TPI&#x27;s shipping crates.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · self-directed · in use</small></span></a></li><li><a class="card" href="/projects/technics-1210-instructions/"><span class="card__media" style="background:#f6f5f1"><img src="/assets/img/mastersounds-1210-assembled-480.webp" alt="" width="480" height="339" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Technics 1210 Instructions</strong><span class="card__short">Instruction drawings for customers fitting a Mastersounds tonearm to a Technics 1210.</span><small class="card__meta"><span class="kind">Freelance</span> · Mastersounds · 2025</small></span></a></li><li><a class="card" href="/projects/live-bom-system/"><span class="card__media"><span class="noimg">Automation &amp; systems</span></span><span class="card__text"><strong class="card__title">Live BOM system</strong><span class="card__short">A live bill-of-materials system in Google Sheets.</span><small class="card__meta"><span class="kind">Professional</span> · TPI Aerospace Limited · Google Sheets</small></span></a></li></ul></section><section class="index__group"><h2><span aria-hidden="true">05</span>Personal &amp; craft · 02</h2><ul class="cards"><li><a class="card" href="/projects/hand-embroidered-patches/"><span class="card__media" style="background:#e5e8dd"><img src="/assets/img/patch-soldier-480.webp" alt="" width="480" height="480" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Hand-embroidered patches</strong><span class="card__short">Patches embroidered by hand.</span><small class="card__meta"><span class="kind">Personal</span></small></span></a></li><li><a class="card" href="/projects/field-unit/"><span class="card__media" style="background:#0d0f0c"><img src="/assets/img/field-unit-site-480.webp" alt="" width="480" height="470" loading="lazy" decoding="async"></span><span class="card__text"><strong class="card__title">Field Unit</strong><span class="card__short">My music, and the website it lives on.</span><small class="card__meta"><span class="kind">Personal</span> · music and website · live</small></span></a></li></ul></section></div>
+  </section>
+</main>
+<footer class="bottom">
+  <canvas class="footrule" id="foot-rule" aria-hidden="true"></canvas>
+  <span id="footer-left">James Mason · Product Design Engineer · Leicester, UK</span>
+</footer>
+
+</body>
+</html>

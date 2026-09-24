@@ -53462,3 +53462,1853 @@ createCanvasElement,
 sRGBEncoding
 };
 })();
+/* Procedural desk objects: recognisable stand-ins built from primitives where no usable CAD exists
+   (the Wilson Benesch Eminence, Precision and GMT One, from their photographs; a simplified Technics 1210,
+   at James's request), plus the symbolic objects (the PC, the BOM ledger, the Field Unit sleeve, the patch,
+   the CV folio). They are navigation illustrations, not production models; the photos and drawings on each
+   project page are the evidence.
+
+   Each builder returns a THREE.Group standing on y = 0, centred on x/z, front facing +z, in metres.
+   group.userData.respond(k, t) animates the hover response (k: 0..1 eased, t: seconds). Classic script;
+   expects the global THREE. */
+(function () {
+  "use strict";
+
+  const PALETTE = {
+    ink: "#1f1f1d", paper: "#f6f5f1", accent: "#e8531f",
+    beige: "#d9d3c1", beigeDark: "#c7bfa9", screen: "#121412",
+    ply: "#d9c39c", plyDark: "#c9ae80", black: "#1c1c1b", graphite: "#3b3d40",
+    brass: "#c8a458", silver: "#c3c3be", slate: "#303844", slateTop: "#3a4350"
+  };
+
+  function builders(THREE) {
+    const mats = new Map();
+    function mat(colour, roughness = 0.7, metalness = 0, extra = {}) {
+      const key = colour + "/" + roughness + "/" + metalness + "/" + JSON.stringify(extra);
+      if (!extra.map && !extra.emissiveMap && mats.has(key)) return mats.get(key);
+      const m = new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(colour), roughness, metalness }, extra));
+      if (!extra.map && !extra.emissiveMap) mats.set(key, m);
+      return m;
+    }
+    function mesh(geo, material, x = 0, y = 0, z = 0, parent) {
+      const m = new THREE.Mesh(geo, material);
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      if (parent) parent.add(m);
+      return m;
+    }
+    function roundedRect(w, d, r) {
+      const s = new THREE.Shape();
+      const x = w / 2, z = d / 2;
+      r = Math.min(r, x, z);
+      s.moveTo(-x + r, -z);
+      s.lineTo(x - r, -z);
+      s.quadraticCurveTo(x, -z, x, -z + r);
+      s.lineTo(x, z - r);
+      s.quadraticCurveTo(x, z, x - r, z);
+      s.lineTo(-x + r, z);
+      s.quadraticCurveTo(-x, z, -x, z - r);
+      s.lineTo(-x, -z + r);
+      s.quadraticCurveTo(-x, -z, -x + r, -z);
+      return s;
+    }
+    // A box with rounded vertical edges, standing on y = 0.
+    function slab(w, h, d, r, segments = 6) {
+      const geo = new THREE.ExtrudeGeometry(roundedRect(w, d, r), { depth: h, bevelEnabled: false, curveSegments: segments });
+      geo.rotateX(-Math.PI / 2);
+      return geo;
+    }
+    function box(w, h, d) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      geo.translate(0, h / 2, 0);
+      return geo;
+    }
+    function canvasTexture(w, h, draw) {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      draw(canvas.getContext("2d"), w, h);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      return tex;
+    }
+    /* ---- a kit for the loudspeaker miniatures ----
+       Parts are made facing +z with their back on z = 0, placed with a matrix, and gathered by material: each set is
+       merged into one mesh, so a speaker with a dozen drive units is still a handful of draw calls. */
+    function batch() {
+      const sets = new Map();
+      return {
+        add(material, geo, matrix) {
+          const g = geo.index ? geo.toNonIndexed() : geo.clone();
+          if (matrix) g.applyMatrix4(matrix);
+          if (!sets.has(material)) sets.set(material, []);
+          sets.get(material).push(g);
+        },
+        into(parent) {
+          sets.forEach((geos, material) => mesh(merged(geos), material, 0, 0, 0, parent));
+        }
+      };
+    }
+    function merged(geos) {
+      const n = geos.reduce((s, g) => s + g.attributes.position.count, 0);
+      const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+      let at = 0;
+      geos.forEach((g) => {
+        pos.set(g.attributes.position.array, at * 3);
+        if (g.attributes.normal) nrm.set(g.attributes.normal.array, at * 3);
+        if (g.attributes.uv) uv.set(g.attributes.uv.array, at * 2);
+        at += g.attributes.position.count;
+      });
+      const out = new THREE.BufferGeometry();
+      out.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      out.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+      out.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      return out;
+    }
+    const place = (x, y, z, turn = 0) => new THREE.Matrix4().makeRotationY(turn).setPosition(x, y, z);
+    const nudge = (m, x, y, z) => m.clone().multiply(new THREE.Matrix4().makeTranslation(x, y, z));
+    // A flat ring, `depth` thick.
+    function annulus(rOut, rIn, depth, segs = 40) {
+      const s = new THREE.Shape().absarc(0, 0, rOut, 0, Math.PI * 2, false);
+      s.holes.push(new THREE.Path().absarc(0, 0, rIn, 0, Math.PI * 2, true));
+      return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: segs });
+    }
+    function disc(r, depth, segs = 32) {
+      const g = new THREE.CylinderGeometry(r, r, depth, segs);
+      g.rotateX(Math.PI / 2);
+      g.translate(0, 0, depth / 2);
+      return g;
+    }
+    // A low dome, its texture laid straight across it so a pattern reads flat from the front.
+    function dome(r, rise, segs = 24) {
+      const g = new THREE.SphereGeometry(r, segs, Math.max(4, segs >> 2), 0, Math.PI * 2, 0, Math.PI / 2);
+      g.rotateX(Math.PI / 2);
+      g.scale(1, 1, rise / r);
+      return flatUV(g, r);
+    }
+    function flatUV(g, r) {
+      const p = g.attributes.position, uv = g.attributes.uv;
+      for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / (2 * r) + 0.5, p.getY(i) / (2 * r) + 0.5);
+      return g;
+    }
+    // A diaphragm, opening towards the front: radius r0 at z = 0, narrowing to r1 at z = -depth.
+    function diaphragm(r0, r1, depth, segs = 32) {
+      const g = new THREE.CylinderGeometry(r0, r1, depth, segs, 1, true);
+      g.rotateX(Math.PI / 2);
+      g.translate(0, 0, -depth / 2);
+      return g;
+    }
+    // The back of a diaphragm, seen from behind: radius r0 at z = 0, narrowing towards the front.
+    function backCone(r0, r1, depth, segs = 32) {
+      const g = new THREE.CylinderGeometry(r1, r0, depth, segs, 1, true);
+      g.rotateX(Math.PI / 2);
+      g.translate(0, 0, depth / 2);
+      return g;
+    }
+    const torus = (r, tube, segs = 40) => new THREE.TorusGeometry(r, tube, 6, segs);
+    // An upright cylinder standing on y = 0.
+    function post(r, h, segs = 20) {
+      const g = new THREE.CylinderGeometry(r, r, h, segs);
+      g.translate(0, h / 2, 0);
+      return g;
+    }
+    // Smooth shading over a non-indexed geometry: every copy of a corner takes the average of the faces round it.
+    function smooth(geo) {
+      geo.computeVertexNormals();
+      const p = geo.attributes.position, n = geo.attributes.normal, sums = new Map();
+      const key = (i) => Math.round(p.getX(i) * 1e4) + "," + Math.round(p.getY(i) * 1e4) + "," + Math.round(p.getZ(i) * 1e4);
+      for (let i = 0; i < p.count; i++) {
+        const k = key(i), s = sums.get(k) || [0, 0, 0];
+        s[0] += n.getX(i); s[1] += n.getY(i); s[2] += n.getZ(i);
+        sums.set(k, s);
+      }
+      for (let i = 0; i < p.count; i++) {
+        const s = sums.get(key(i)), l = Math.hypot(s[0], s[1], s[2]) || 1;
+        n.setXYZ(i, s[0] / l, s[1] / l, s[2] / l);
+      }
+      return geo;
+    }
+
+    // Seeds set at the golden angle, as dark openings in a lattice: the pattern of the Fibonacci dust caps and
+    // tweeter faceplates James modelled at Wilson Benesch. A colour map for the caps and plates.
+    let seeds = null;
+    function fibonacci() {
+      if (!seeds) {
+        seeds = canvasTexture(256, 256, (c, w) => {
+          c.fillStyle = "#8a8b8e"; c.fillRect(0, 0, w, w);
+          c.fillStyle = "#1a1b1d";
+          const n = 220, golden = Math.PI * (3 - Math.sqrt(5));
+          for (let i = 3; i < n; i++) {
+            const f = Math.sqrt(i / n), a = i * golden, r = f * w * 0.49;
+            c.beginPath();
+            c.arc(w / 2 + Math.cos(a) * r, w / 2 + Math.sin(a) * r, 1.6 + 5.2 * f, 0, Math.PI * 2);
+            c.fill();
+          }
+        });
+      }
+      return seeds;
+    }
+
+    // A Wilson Benesch Tactic drive unit on a baffle: a flat frame with a raised rim and four screws, the rolled
+    // surround, a shallow diaphragm and the dust cap. `well` is how deep the hole behind it is (the Eminence's baffle
+    // has one); with none, the unit stands a little proud so its diaphragm isn't buried in the cabinet. `trim` adds
+    // the thin bright ring the Precision units have between frame and surround.
+    function tactic(b, M, at, R, well, trim) {
+      const cone = Math.max(R * 0.08, Math.min(R * 0.26, well - 0.001));
+      at = nudge(at, 0, 0, Math.max(0, cone - well + 0.001));
+      b.add(M.frame, annulus(R, R * 0.8, R * 0.05), at);
+      b.add(M.frame, torus(R * 0.94, R * 0.04), nudge(at, 0, 0, R * 0.05));
+      [1, 3, 5, 7].forEach((k) => {
+        const a = (k * Math.PI) / 4;
+        b.add(M.screw, disc(R * 0.04, R * 0.025, 8), nudge(at, Math.cos(a) * R * 0.87, Math.sin(a) * R * 0.87, R * 0.05));
+      });
+      if (trim) b.add(M.trim, torus(R * 0.8, R * 0.022), nudge(at, 0, 0, R * 0.05));
+      b.add(M.surround, torus(R * 0.72, R * 0.075), nudge(at, 0, 0, R * 0.01));
+      b.add(M.cone, diaphragm(R * 0.68, R * 0.3, cone), nudge(at, 0, 0, R * 0.02));
+      b.add(M.cap, dome(R * 0.34, R * 0.13), nudge(at, 0, 0, R * 0.02 - cone * 0.85));
+    }
+    // A flat panel with round holes, `depth` thick, standing on y = 0 with its back on z = 0: a baffle that drive
+    // units can sit down into. `holes` are [x, y, radius] from the panel's bottom centre.
+    function baffle(w, h, depth, holes) {
+      const s = new THREE.Shape();
+      s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(w / 2, h); s.lineTo(-w / 2, h); s.lineTo(-w / 2, 0);
+      holes.forEach(([x, y, r]) => s.holes.push(new THREE.Path().absarc(x, y, r, 0, Math.PI * 2, true)));
+      return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 40 });
+    }
+
+    // One of the Eminence's isobaric pairs, seen from the room. The outer unit is mounted the other way round, so
+    // what faces out is its basket and motor: a flange with screws, four spokes, and the magnet standing well proud
+    // under a polished cap. That depth is what the lower half of an Eminence looks like.
+    function isobaric(b, M, at, R) {
+      b.add(M.basket, annulus(R, R * 0.84, R * 0.05), at);
+      [1, 3, 5, 7].forEach((k) => {
+        const a = (k * Math.PI) / 4;
+        b.add(M.screw, disc(R * 0.035, R * 0.022, 8), nudge(at, Math.cos(a) * R * 0.92, Math.sin(a) * R * 0.92, R * 0.05));
+      });
+      b.add(M.surround, torus(R * 0.77, R * 0.06), nudge(at, 0, 0, R * 0.01));
+      b.add(M.cone, backCone(R * 0.72, R * 0.34, R * 0.32), nudge(at, 0, 0, R * 0.02));
+      [0, 1, 2, 3].forEach((k) => {
+        const s = new THREE.Vector3(R * 0.86, 0, R * 0.04), e = new THREE.Vector3(R * 0.4, 0, R * 0.42);
+        const spoke = new THREE.BoxGeometry(s.distanceTo(e), R * 0.07, R * 0.035);
+        spoke.rotateY(Math.atan2(-(e.z - s.z), e.x - s.x));
+        spoke.translate((s.x + e.x) / 2, 0, (s.z + e.z) / 2);
+        spoke.rotateZ((k + 0.5) * (Math.PI / 2));
+        b.add(M.basket, spoke, at);
+      });
+      b.add(M.motor, disc(R * 0.46, R * 0.06, 28), nudge(at, 0, 0, R * 0.38));
+      b.add(M.motor, disc(R * 0.4, R * 0.36, 28), nudge(at, 0, 0, R * 0.44));
+      b.add(M.polished, disc(R * 0.34, R * 0.05, 28), nudge(at, 0, 0, R * 0.8));
+    }
+
+    /* ---- stand-ins for projects without usable CAD ---- */
+
+    function placeholder(o) {
+      const g = new THREE.Group();
+      mesh(box(o.w || 0.4, o.h || 0.6, o.d || 0.4), mat("#cfcac1", 0.8), 0, 0, 0, g);
+      return g;
+    }
+
+    // A carbon-fibre twill: fine diagonal weave in two blacks, for the Wilson Benesch cabinets and arm.
+    let twill = null;
+    function carbon() {
+      if (!twill) {
+        twill = canvasTexture(256, 256, (c, w, h) => {
+          c.fillStyle = "#26272a"; c.fillRect(0, 0, w, h);
+          const step = 16;
+          for (let y = 0; y < h; y += step / 2) {
+            for (let x = 0; x < w; x += step) {
+              const o = ((y / (step / 2)) % 2) * (step / 2);
+              c.fillStyle = (x / step + y / (step / 2)) % 2 ? "#3a3c40" : "#2f3033";
+              c.beginPath();
+              c.moveTo(x + o, y); c.lineTo(x + o + step / 2, y); c.lineTo(x + o + step, y + step / 2); c.lineTo(x + o + step / 2, y + step / 2);
+              c.fill();
+            }
+          }
+        });
+        twill.wrapS = twill.wrapT = THREE.RepeatWrapping;
+        twill.repeat.set(3, 3);
+      }
+      return twill;
+    }
+
+    // Plan outline of a lens-shaped cabinet (front at -y, which stands up to face +z): a flat front,
+    // sides bowing out and sweeping back to a narrow, rounded rear.
+    function lensPlan(front, widest, depth, rear) {
+      const s = new THREE.Shape();
+      s.moveTo(-front / 2, -depth / 2);
+      s.lineTo(front / 2, -depth / 2);
+      s.bezierCurveTo(widest / 2 + 0.01, -depth * 0.3, widest / 2, depth * 0.1, rear / 2, depth / 2 - rear / 2);
+      s.quadraticCurveTo(0, depth / 2 + rear * 0.2, -rear / 2, depth / 2 - rear / 2);
+      s.bezierCurveTo(-widest / 2, depth * 0.1, -widest / 2 - 0.01, -depth * 0.3, -front / 2, -depth / 2);
+      return s;
+    }
+    function standUp(shape, h, opts) {
+      const geo = new THREE.ExtrudeGeometry(shape, Object.assign({ depth: h, bevelEnabled: false, curveSegments: 20 }, opts || {}));
+      geo.rotateX(-Math.PI / 2);
+      return geo;
+    }
+
+    // Wilson Benesch Eminence, as in the release render (textured black, with the isobaric bay silver) and Wilson
+    // Benesch's photographs and figures: 1905 mm tall, a 205 mm baffle, a foot 613 mm across, 624 mm deep. A
+    // lens-shaped column in two sections joined at an aluminium mid-plate, under a carbon top that rises towards
+    // the back. On the baffle: two Tactic 3.0 units and the Fibonacci tweeter, then below the mid-plate the
+    // midrange unit, then a recessed bay with the four isobaric units, their motors standing proud. The machined
+    // foot has four outriggers, a hand-wheel over each spike. Scene metres, standing on y = 0, front to +z.
+    function eminence() {
+      const g = new THREE.Group();
+      const b = batch();
+      const W = 0.34, D = 0.62, FRONT = 0.205, REAR = 0.07;
+      const FOOT = 0.1, SEAM = 1.147, TOP = 1.62, zf = D / 2, BT = 0.016;
+      const M = {
+        sides: mat("#ffffff", 0.35, 0.25, { map: carbon() }),
+        gloss: mat("#1d1e21", 0.12, 0.25),
+        plate: mat("#46474b", 0.3, 0.7),
+        frame: mat("#3c3c3e", 0.45, 0.35),
+        screw: mat("#9a9a96", 0.3, 0.85),
+        surround: mat("#19191a", 0.9, 0),
+        cone: mat("#48484b", 0.7, 0.05, { side: THREE.DoubleSide }),
+        cap: mat("#a4a4a4", 0.45, 0.2, { map: fibonacci() }),
+        faceplate: mat("#a8a8a8", 0.55, 0.15, { map: fibonacci() }),
+        dome: mat("#161617", 0.3, 0.2),
+        bay: mat("#a3a5a6", 0.35, 0.55),
+        basket: mat("#4b4b4d", 0.4, 0.5),
+        motor: mat("#2a2724", 0.45, 0.55),
+        polished: mat("#a08547", 0.2, 0.95),
+        foot: mat("#27282b", 0.35, 0.55),
+        wheel: mat("#1f2022", 0.45, 0.45),
+        steel: mat(PALETTE.silver, 0.2, 0.9)
+      };
+      const plan = (grow = 0) => lensPlan(FRONT + grow, W + grow, D + grow, REAR + grow * 0.5);
+      // The column, its mid-plate, and the gloss baffle carried down the front in two pieces either side of it.
+      b.add(M.sides, standUp(plan(), SEAM - FOOT), place(0, FOOT, 0));
+      b.add(M.plate, standUp(plan(0.012), 0.016), place(0, SEAM - 0.008, 0));
+      b.add(M.sides, standUp(plan(), TOP - SEAM), place(0, SEAM, 0));
+      const R = 0.087, upper = SEAM + 0.008, lower = 0.93;
+      b.add(M.gloss, baffle(FRONT, TOP - upper, BT, [[0, 1.52 - upper, R * 0.8], [0, 1.34 - upper, R * 0.8]]), place(0, upper, zf));
+      b.add(M.gloss, baffle(FRONT, SEAM - 0.008 - lower, BT, [[0, 1.03 - lower, R * 0.8]]), place(0, lower, zf));
+      b.add(M.plate, box(FRONT, 0.016, BT * 0.7), place(0, SEAM - 0.008, zf + BT * 0.35));
+      // The isobaric bay, set back between the baffle's edges.
+      const bayLow = FOOT + 0.04;
+      b.add(M.bay, box(FRONT - 0.02, 0.93 - bayLow, 0.004), place(0, bayLow, zf + 0.002));
+      [-1, 1].forEach((s) => b.add(M.gloss, box(0.01, 0.93 - bayLow, BT), place(s * (FRONT / 2 - 0.005), bayLow, zf + BT / 2)));
+      // Drive units, from the reference render's spacing.
+      [1.52, 1.34, 1.03].forEach((y) => tactic(b, M, place(0, y, zf + BT), R, BT, false));
+      const tw = place(0, 1.205, zf + BT);
+      b.add(M.faceplate, cushion(0.128, 0.092, 0.012, 0.01, 0.006), tw);
+      b.add(M.frame, annulus(0.02, 0.013, 0.009, 24), tw);
+      b.add(M.dome, dome(0.013, 0.01, 16), nudge(tw, 0, 0, 0.006));
+      [0.76, 0.585, 0.41, 0.235].forEach((y) => isobaric(b, M, place(0, y, zf + 0.004), 0.086));
+      // The carbon top: the cabinet's plan, bevelled all round, its height set point by point so it rises from the
+      // baffle towards the back. The lower bevel sinks into the cabinet, so the seam stays tight.
+      const depth = 0.6, bevel = 0.4, t0 = bevel / (depth + 2 * bevel);
+      const hood = standUp(plan(), depth,
+        { steps: 3, curveSegments: 28, bevelEnabled: true, bevelThickness: bevel, bevelSize: 0.014, bevelOffset: -0.014, bevelSegments: 6 });
+      const p = hood.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const tt = (p.getY(i) + bevel) / (depth + 2 * bevel);               // 0 at the bottom, 1 at the top
+        const back = Math.min(1, Math.max(0, 0.5 - p.getZ(i) / D));         // 0 at the front, 1 at the back
+        p.setY(i, ((tt - t0) / (1 - t0)) * (0.02 + 0.265 * (1 - Math.pow(1 - back, 1.7))));
+      }
+      b.add(mat("#ffffff", 0.3, 0.3, { map: carbon() }), smooth(hood), place(0, TOP, 0));
+      // The foot: a plate under the cabinet and a larger one with four outriggers, a grooved hand-wheel over each
+      // spike, and the spikes' shoes.
+      b.add(M.foot, standUp(plan(0.05), 0.022), place(0, FOOT - 0.022, 0));
+      b.add(M.foot, standUp(plan(0.09), 0.03), place(0, 0.048, 0));
+      [[-0.265, 0.2], [0.265, 0.2], [-0.2, -0.28], [0.2, -0.28]].forEach(([x, z]) => {
+        const len = Math.hypot(x, z), arm = new THREE.BoxGeometry(len, 0.03, 0.075);
+        arm.rotateY(Math.atan2(-z, x));
+        arm.translate(x / 2, 0.015, z / 2);
+        b.add(M.foot, arm, place(0, 0.048, 0));
+        b.add(M.foot, post(0.0375, 0.03), place(x, 0.048, z));
+        b.add(M.wheel, post(0.032, 0.018), place(x, 0.078, z));
+        b.add(M.wheel, post(0.026, 0.016), place(x, 0.096, z));
+        b.add(M.wheel, post(0.032, 0.018), place(x, 0.112, z));
+        const spike = new THREE.ConeGeometry(0.01, 0.036, 12);
+        spike.rotateX(Math.PI);
+        spike.translate(0, 0.03, 0);
+        b.add(M.steel, spike, place(x, 0, z));
+        b.add(M.steel, post(0.035, 0.012), place(x, 0, z));
+      });
+      b.into(g);
+      return g;
+    }
+
+    // The Fibonacci tweeter's faceplate: a cushion shape, its long sides bowed out and its top and bottom drawn in.
+    function cushion(w, h, bulge, pinch, depth) {
+      const s = new THREE.Shape();
+      s.moveTo(-w / 2, h / 2);
+      s.quadraticCurveTo(0, h / 2 - pinch, w / 2, h / 2);
+      s.quadraticCurveTo(w / 2 + bulge, 0, w / 2, -h / 2);
+      s.quadraticCurveTo(0, -h / 2 + pinch, -w / 2, -h / 2);
+      s.quadraticCurveTo(-w / 2 - bulge, 0, -w / 2, h / 2);
+      return flatUV(new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 10 }), w / 2);
+    }
+
+    // Wilson Benesch Precision P2.0, in Precision Black, from James's KeyShot line-up and Wilson Benesch's
+    // photographs and figures: 1105 mm tall, a 205 mm baffle, 472 mm deep, 269 mm across the feet. On the baffle,
+    // top to bottom: the 170 mm Tactic 2.0 midrange unit, the Leonardo tweeter in its Fibonacci-pattern faceplate,
+    // and the Tactic 2.0 bass unit. Machined caps top and bottom; at the foot, four round outriggers on slim spikes.
+    function precision() {
+      const g = new THREE.Group();
+      const b = batch();
+      const W = 0.205, D = 0.472, zf = D / 2, TOP = 1.074;
+      const M = {
+        body: mat("#34363a", 0.55, 0.12),
+        ends: mat("#404246", 0.35, 0.45),
+        seam: mat("#1c1d1f", 0.7, 0.1),
+        puck: mat("#232427", 0.45, 0.3),
+        steel: mat(PALETTE.silver, 0.2, 0.9),
+        frame: mat("#1d1d1f", 0.5, 0.25),
+        trim: mat("#cfcfcb", 0.22, 0.9),
+        screw: mat("#6a6a68", 0.35, 0.7),
+        surround: mat("#151516", 0.9, 0),
+        cone: mat("#2e2f31", 0.72, 0.05, { side: THREE.DoubleSide }),
+        cap: mat("#b8b8b8", 0.45, 0.2, { map: fibonacci() }),
+        faceplate: mat("#707070", 0.55, 0.15, { map: fibonacci() }),
+        dome: mat("#161617", 0.3, 0.2)
+      };
+      // Four round pucks under the bottom cap's corners, standing out beyond it, each on a slim spike.
+      [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => {
+        const x = sx * 0.1005, z = sz * (zf - 0.03);
+        const spike = new THREE.ConeGeometry(0.0065, 0.022, 10);
+        spike.rotateX(Math.PI);
+        spike.translate(0, 0.011, 0);
+        b.add(M.steel, spike, place(x, 0, z));
+        b.add(M.puck, post(0.034, 0.024, 24), place(x, 0.022, z));
+      });
+      b.add(M.ends, slab(W + 0.01, 0.028, D + 0.01, 0.035, 8), place(0, 0.044, 0));
+      b.add(M.body, slab(W, TOP - 0.072, D, 0.028, 8), place(0, 0.072, 0));
+      b.add(M.ends, slab(W + 0.012, 0.031, D + 0.012, 0.036, 8), place(0, TOP, 0));
+      // The side panels sit between the front and rear edges: a fine line either side of each.
+      [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => {
+        b.add(M.seam, box(0.0012, TOP - 0.1, 0.003), place(sx * (W / 2 + 0.0004), 0.086, sz * (zf - 0.04)));
+      }));
+      tactic(b, M, place(0, 0.945, zf), 0.083, 0, true);
+      const tw = place(0, 0.812, zf);
+      b.add(M.faceplate, disc(0.042, 0.005, 40), tw);
+      b.add(M.frame, annulus(0.016, 0.0115, 0.008, 24), tw);
+      b.add(M.dome, dome(0.0115, 0.008, 16), nudge(tw, 0, 0, 0.005));
+      tactic(b, M, place(0, 0.68, zf), 0.083, 0, true);
+      b.into(g);
+      return g;
+    }
+
+    // Wilson Benesch GMT One, from the system and product photographs: the turntable is the top of its own
+    // gloss-black rack. Under the top, a drawer with a handle slot; below, two open shelves on four black legs
+    // jointed in brass, the power supply on the middle shelf. On top, the clear acrylic platter over its steel
+    // drive, with four brass pucks round it. (The Graviton arm and its cantilever, the platter's brass slugs, the
+    // arm rest and the leg spikes are left out, at James's request: at desk size they read as clutter.)
+    // The platter turns on hover.
+    function gmtOne() {
+      const g = new THREE.Group();
+      const W = 0.64, D = 0.5, TOP = 0.8;
+      const gloss = mat("#1f2023", 0.1, 0.15), satin = mat("#26272a", 0.3, 0.2);
+      const brass = mat(PALETTE.brass, 0.22, 0.9), steel = mat("#d2d3d1", 0.12, 0.95);
+      // Rack: four legs with brass joints, two shelves.
+      const lx = W / 2 - 0.035, lz = D / 2 - 0.035;
+      [[-lx, -lz], [lx, -lz], [-lx, lz], [lx, lz]].forEach(([x, z]) => {
+        mesh(box(0.055, 0.69, 0.055), gloss, x, 0, z, g);
+        [0.1, 0.34, 0.58].forEach((y) => mesh(box(0.066, 0.028, 0.066), brass, x, y, z, g));
+      });
+      [0.1, 0.34].forEach((y) => {
+        mesh(box(W - 0.09, 0.026, D - 0.09), gloss, 0, y, 0, g);
+        mesh(box(W - 0.15, 0.004, D - 0.15), mat("#ffffff", 0.35, 0.3, { map: carbon() }), 0, y + 0.026, 0, g);
+      });
+      // The power supply on the middle shelf, with a small steel badge.
+      mesh(box(0.44, 0.1, 0.33), satin, 0, 0.37, -0.01, g);
+      mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.004, 20).rotateX(Math.PI / 2), steel, 0, 0.425, 0.157, g);
+      // Drawer under the top, with its handle slot lit in bronze.
+      mesh(box(W - 0.02, 0.13, D - 0.02), gloss, 0, 0.585, 0, g);
+      mesh(box(W - 0.06, 0.004, 0.006), mat("#101113", 0.5), 0, 0.583, (D - 0.02) / 2 + 0.002, g);
+      mesh(box(0.2, 0.018, 0.008), mat("#0c0c0d", 0.6), 0, 0.64, (D - 0.02) / 2 + 0.001, g);
+      mesh(box(0.18, 0.004, 0.009), mat("#a8834a", 0.3, 0.8), 0, 0.641, (D - 0.02) / 2 + 0.001, g);
+      // The top: a deep gloss slab.
+      mesh(slab(W, 0.085, D, 0.02, 6), gloss, 0, TOP - 0.085, 0, g);
+      const cx = -0.07, cz = 0.015;
+      // The platter's well, then the platter: clear acrylic over the steel drive.
+      const well = new THREE.RingGeometry(0.172, 0.19, 64);
+      well.rotateX(-Math.PI / 2);
+      mesh(well, mat("#0d0d0e", 0.6), cx, TOP + 0.001, cz, g).receiveShadow = false;
+      mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.004, 48).translate(0, 0.002, 0), steel, cx, TOP, cz, g);
+      const platter = new THREE.Group();
+      platter.position.set(cx, TOP, cz);
+      g.add(platter);
+      const acrylic = new THREE.CylinderGeometry(0.17, 0.17, 0.04, 64);
+      acrylic.translate(0, 0.02, 0);
+      mesh(acrylic, mat("#e6f0f2", 0.05, 0.0, { transparent: true, opacity: 0.35, depthWrite: false }), 0, 0, 0, platter).castShadow = false;
+      mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.035, 32).translate(0, 0.057, 0), mat("#141416", 0.25, 0.3), 0, 0, 0, platter);
+      mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.006, 32).translate(0, 0.078, 0), brass, 0, 0, 0, platter);
+      // Four brass pucks round the platter.
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.026, 24).translate(0, 0.013, 0), brass, cx + sx * 0.19, TOP, cz + sz * 0.175, g);
+      });
+      g.userData.respond = (k, t) => { platter.rotation.y = -t * 3.5 * k; };
+      return g;
+    }
+
+    // Technics 1210 instructions: a simplified SL-1210 as a short exploded stack, paper-white on a
+    // drawing sheet, so it reads like the instruction drawings (the desk adds ink edges). The CAD model
+    // of the exploded 1210 stalled the mesher, and James asked for a simple stand-in instead.
+    function t1210() {
+      const g = new THREE.Group();
+      const paper = mat("#f3f1ec", 0.9);
+      const sheet = new THREE.BoxGeometry(0.66, 0.004, 0.48);
+      sheet.translate(0, 0.002, 0);
+      mesh(sheet, mat("#fbfaf7", 0.95), 0, 0, 0, g);
+      const layers = [];
+      let y = 0.004;
+      function layer(h, gap) {
+        const l = new THREE.Group();
+        l.userData.base = y + gap;
+        l.userData.gap = gap;
+        l.position.y = l.userData.base;
+        y += gap + h;
+        g.add(l);
+        layers.push(l);
+        return l;
+      }
+      const feet = layer(0.035, 0);
+      [[-0.18, -0.13], [0.18, -0.13], [-0.18, 0.13], [0.18, 0.13]].forEach(([x, z]) => {
+        const f = new THREE.CylinderGeometry(0.03, 0.034, 0.035, 20);
+        f.translate(0, 0.0175, 0);
+        mesh(f, paper, x, 0, z, feet);
+      });
+      mesh(slab(0.45, 0.05, 0.35, 0.03), paper, 0, 0, 0, layer(0.05, 0.05));          // base casting
+      mesh(slab(0.44, 0.07, 0.34, 0.025), paper, 0, 0, 0, layer(0.07, 0.045));        // chassis
+      const top = layer(0.012, 0.04);                                                     // top plate and controls
+      mesh(slab(0.45, 0.012, 0.35, 0.02), paper, 0, 0, 0, top);
+      mesh(box(0.012, 0.006, 0.12), paper, 0.19, 0.012, 0.05, top);                     // pitch slider
+      mesh(box(0.05, 0.008, 0.035), paper, -0.18, 0.012, 0.13, top);                    // start/stop
+      const pivot = new THREE.CylinderGeometry(0.03, 0.035, 0.03, 20);
+      pivot.translate(0, 0.027, 0);
+      mesh(pivot, paper, 0.15, 0, -0.1, top);
+      const arm = new THREE.CylinderGeometry(0.005, 0.005, 0.24, 10);
+      arm.rotateX(Math.PI / 2);
+      arm.rotateY(0.35);
+      mesh(arm, paper, 0.11, 0.05, 0.0, top);
+      const weight = new THREE.CylinderGeometry(0.018, 0.018, 0.04, 16);
+      weight.rotateX(Math.PI / 2);
+      mesh(weight, paper, 0.17, 0.05, -0.16, top);
+      const platter = layer(0.035, 0.05);
+      const disc = new THREE.CylinderGeometry(0.165, 0.165, 0.03, 48);
+      disc.translate(0, 0.015, 0);
+      mesh(disc, paper, -0.04, 0, 0.0, platter);
+      const matGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.004, 48);
+      matGeo.translate(0, 0.032, 0);
+      mesh(matGeo, paper, -0.04, 0, 0.0, platter);
+      g.userData.respond = (k) => {
+        let lift = 0;
+        layers.forEach((l, i) => { lift += l.userData.gap * 0.9 * k; l.position.y = l.userData.base + lift; });
+      };
+      return g;
+    }
+
+    // Remote Object, simplified from the instrument's own models: a metal ring floating over the board,
+    // and hanging from it on short chains the handheld with its pale screen, the pronouncer, the key, the
+    // unlabelled device, the rotor, the treatment unit, the hoop and the token. It bobs and swings slowly
+    // (`idle`); pointed at, the ring turns like a carousel. An invisible box round it all, down to the board,
+    // gives an easy target and keeps it floating once the desk fits it to its place.
+    function keyring() {
+      const g = new THREE.Group();
+      const float = new THREE.Group();
+      g.add(float);
+      // The devices' own finishes, as they look in the instrument: the handheld's dark smoked case and pale panel,
+      // the cream pronouncer, the pink key, the olive treatment board, the pale blue unlabelled device, the navy
+      // hoop and the bronze token.
+      const metal = mat("#c3c6c2", 0.26, 0.9), black = mat("#1c1d1e", 0.5, 0.2), smoke = mat("#2f3a38", 0.3, 0.25);
+      const lcd = mat("#aeb8aa", 0.5, 0, { emissive: new THREE.Color("#5d6b58"), emissiveIntensity: 0.35 });
+      const cream = mat("#e4dcc3", 0.6), pink = mat("#d895b6", 0.45), olive = mat("#77743c", 0.55, 0.1);
+      const glass = mat("#a3b7cc", 0.2, 0.1, { transparent: true, opacity: 0.78 }), navy = mat("#262c3d", 0.45, 0.2);
+      const bronze = mat("#7c6d47", 0.35, 0.7), cloth = mat("#ece6d6", 0.95), thread = mat(PALETTE.accent, 0.7);
+      const R = 0.5, TOP = 1.02;
+      const ring = new THREE.TorusGeometry(R, 0.024, 8, 72);
+      ring.rotateX(Math.PI / 2);
+      mesh(ring, metal, 0, TOP, 0, float);
+      const hang = [];
+      // One device: built round its own origin with its top at y = 0, hung from the ring at `a` radians.
+      function onRing(a, dev, drop) {
+        const x = Math.cos(a) * R, z = Math.sin(a) * R;
+        for (let k = 0; k < 3; k++) {                         // three links, alternately turned
+          const link = new THREE.TorusGeometry(0.016, 0.004, 5, 12);
+          if (k % 2) link.rotateY(Math.PI / 2);
+          mesh(link, metal, x, TOP - 0.03 - k * 0.026, z, float);
+        }
+        const holder = new THREE.Group();
+        holder.position.set(x, TOP - 0.1 - (drop || 0), z);
+        holder.rotation.y = -a + Math.PI / 2;                 // each faces outwards, as they hang
+        holder.scale.setScalar(1.9);                          // as large against the ring as in the instrument
+        holder.add(dev);
+        float.add(holder);
+        hang.push(holder);
+      }
+      // the handheld: the instrument's own tapered, faceted outline, smoked plastic, a pale panel
+      const outline = [[-2.3, 2.8], [2.42, 2.8], [2.42, 0.9], [1.8, -2.72], [-1.72, -2.8], [-2.3, 0.2]];
+      const shape = new THREE.Shape(outline.map(([x, y]) => new THREE.Vector2(x * 0.034, (y - 2.8) * 0.034)));
+      const handheld = new THREE.Group();
+      mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.032, bevelEnabled: false }), smoke, 0, 0, -0.016, handheld);
+      mesh(new THREE.PlaneGeometry(0.12, 0.08), lcd, 0.004, -0.058, 0.0165, handheld).castShadow = false;
+      onRing(Math.PI / 2, handheld);
+      // the pronouncer: a tall cream case, a strip and a window at the top, a slider down one side
+      const voice = new THREE.Group();
+      mesh(box(0.09, 0.15, 0.022), cream, 0, -0.15, 0, voice);
+      mesh(box(0.068, 0.012, 0.004), black, 0, -0.022, 0.011, voice);
+      mesh(box(0.05, 0.042, 0.004), black, 0, -0.078, 0.011, voice);
+      mesh(box(0.008, 0.05, 0.004), black, 0.028, -0.138, 0.011, voice);
+      onRing(Math.PI / 2 + Math.PI / 4, voice);
+      // the key: a pink tag over a black three-sided prong with collars
+      const key = new THREE.Group();
+      mesh(box(0.06, 0.07, 0.016), pink, 0, -0.07, 0, key);
+      const prong = new THREE.ConeGeometry(0.018, 0.09, 3);
+      prong.rotateX(Math.PI);
+      mesh(prong, black, 0, -0.115, 0, key);
+      [0.08, 0.095, 0.115].forEach((y, i) => mesh(new THREE.TorusGeometry(0.016 - i * 0.003, 0.003, 5, 14).rotateX(Math.PI / 2), black, 0, -y, 0, key));
+      onRing(Math.PI, key);
+      // the unlabelled device: a curve of constant width in pale blue, with a lens
+      const odd = new THREE.Group();
+      const reuleaux = new THREE.Shape();
+      const rr = 0.06;
+      for (let k = 0; k < 3; k++) {
+        const c = (k * 2 * Math.PI) / 3 + Math.PI / 2, cx = Math.cos(c) * rr * 0.577, cy = Math.sin(c) * rr * 0.577;
+        const from = c + Math.PI - Math.PI / 6, to = c + Math.PI + Math.PI / 6;
+        reuleaux.absarc(-cx, -cy, rr, from, to, false);
+      }
+      const oddGeo = new THREE.ExtrudeGeometry(reuleaux, { depth: 0.03, bevelEnabled: false, curveSegments: 10 });
+      oddGeo.translate(0, -0.07, -0.015);
+      mesh(oddGeo, glass, 0, 0, 0, odd);
+      mesh(new THREE.SphereGeometry(0.016, 12, 8), mat("#141516", 0.1, 0.4), 0, -0.07, 0.016, odd);
+      onRing(Math.PI + Math.PI / 4, odd);
+      // the rotor: a black drum between two rings; it has no front
+      const rotor = new THREE.Group();
+      mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.075, 16).translate(0, -0.075, 0), black, 0, 0, 0, rotor);
+      [-0.036, -0.114].forEach((y) => mesh(new THREE.TorusGeometry(0.037, 0.004, 6, 24).rotateX(Math.PI / 2), metal, 0, y, 0, rotor));
+      onRing(Math.PI * 1.5, rotor);
+      // the treatment unit: an olive board with a lever, a plunger and a row of lamps
+      const treat = new THREE.Group();
+      mesh(box(0.11, 0.1, 0.02), olive, 0, -0.11, 0, treat);
+      mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.05, 8).rotateZ(0.5).translate(-0.028, -0.055, 0.014), black, 0, 0, 0, treat);
+      mesh(new THREE.TorusGeometry(0.014, 0.005, 8, 20).translate(0.022, -0.06, 0.012), black, 0, 0, 0, treat);
+      for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.0035, 6, 4), mat(k % 2 ? "#d9a441" : "#8fc7b0", 0.4, 0, { emissive: new THREE.Color(k % 2 ? "#6b4a10" : "#2f5f50") }), -0.036 + k * 0.018, -0.024, 0.011, treat);
+      onRing(Math.PI * 1.5 + Math.PI / 4, treat);
+      // the hoop: a navy ring round cloth, with a few straight stitches
+      const hoop = new THREE.Group();
+      mesh(new THREE.TorusGeometry(0.075, 0.008, 6, 32).translate(0, -0.08, 0), navy, 0, 0, 0, hoop);
+      mesh(new THREE.CircleGeometry(0.072, 32).translate(0, -0.08, 0), cloth, 0, 0, 0, hoop).material.side = THREE.DoubleSide;
+      [[-0.04, -0.06, 0.03, -0.1], [0.03, -0.1, 0.0, -0.05], [-0.02, -0.12, 0.04, -0.08]].forEach(([x0, y0, x1, y1]) => {
+        const len = Math.hypot(x1 - x0, y1 - y0);
+        const s = new THREE.CylinderGeometry(0.0025, 0.0025, len, 5);
+        s.rotateZ(Math.atan2(x0 - x1, y1 - y0));
+        s.translate((x0 + x1) / 2, (y0 + y1) / 2, 0.003);
+        mesh(s, thread, 0, 0, 0, hoop);
+      });
+      onRing(0, hoop);
+      // the token: seven lobes of constant width, the hole off-centre
+      const token = new THREE.Group();
+      const lobes = new THREE.Shape();
+      for (let k = 0; k <= 70; k++) {
+        const a = (k / 70) * Math.PI * 2, r = 0.05 + 0.004 * Math.cos(7 * a);
+        const px = Math.cos(a) * r, py = Math.sin(a) * r - 0.06;
+        if (k) lobes.lineTo(px, py); else lobes.moveTo(px, py);
+      }
+      lobes.holes.push(new THREE.Path().absarc(0.012, -0.05, 0.009, 0, Math.PI * 2, true));
+      const tokenGeo = new THREE.ExtrudeGeometry(lobes, { depth: 0.008, bevelEnabled: false });
+      tokenGeo.translate(0, 0, -0.004);
+      mesh(tokenGeo, bronze, 0, 0, 0, token);
+      onRing(Math.PI / 4, token);
+      // the easy target, down to the board
+      const hit = new THREE.Mesh(box(2 * R + 0.3, TOP + 0.08, 2 * R + 0.3),
+        new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+      hit.castShadow = false;
+      hit.receiveShadow = false;
+      g.add(hit);
+      let turn = 0, last = 0;
+      g.userData.idle = (t) => {
+        float.position.y = 0.022 * Math.sin((t / 4.2) * Math.PI * 2);
+        const sway = 0.16 * Math.sin((t / 11) * Math.PI * 2);
+        float.rotation.y = sway + turn;
+        hang.forEach((h, i) => { h.rotation.z = 0.05 * Math.sin(t * 1.3 + i * 0.8); });
+      };
+      g.userData.respond = (k, t) => {
+        turn += (t - last) * 0.9 * k;
+        last = t;
+      };
+      return g;
+    }
+
+    // Technical planning: a drawing sheet half unrolled on the board, its far end still in a roll, with a
+    // small patch box sitting on it and a coiled microphone cable, one plug in the box and the other loose. The
+    // sheet's linework is drawn here, generically: a plan with colour-coded loudspeakers, cable runs back to a
+    // rack, numbered callouts and a small schematic, not any real drawing. Pointed at, the roll gives a little
+    // more of the sheet and the loose plug lifts.
+    function plans() {
+      const g = new THREE.Group();
+      const W = 1.0, D = 0.76, GIVE = 0.1;             // the flat part of the sheet, and how much the roll gives
+      const ink = "#33332f", teal = "#16807a", blue = "#2442d6", grey = "#8a8a84";
+      // The sheet's frame: its sides and foot (the head is still in the roll).
+      const frame = (c, w, h, foot) => {
+        c.strokeStyle = ink;
+        c.lineWidth = 3;
+        c.beginPath(); c.moveTo(20, 0); c.lineTo(20, foot ? h - 20 : h); if (foot) c.lineTo(w - 20, h - 20); c.lineTo(w - 20, 0); c.stroke();
+        c.lineWidth = 1.2;
+        c.beginPath(); c.moveTo(36, 0); c.lineTo(36, foot ? h - 36 : h); if (foot) c.lineTo(w - 36, h - 36); c.lineTo(w - 36, 0); c.stroke();
+      };
+      const sheetTex = canvasTexture(1024, 780, (c, w, h) => {
+        c.fillStyle = "#f7f6f1";
+        c.fillRect(0, 0, w, h);
+        frame(c, w, h, true);
+        // the plan: walls, a partition with a doorway, a stair
+        c.lineWidth = 8;
+        c.strokeRect(90, 150, 600, 470);
+        c.lineWidth = 5;
+        c.beginPath();
+        c.moveTo(450, 150); c.lineTo(450, 330);
+        c.moveTo(450, 400); c.lineTo(450, 620);
+        c.stroke();
+        c.lineWidth = 1.6;
+        for (let i = 0; i < 10; i++) { c.beginPath(); c.moveTo(490 + i * 17, 500); c.lineTo(490 + i * 17, 610); c.stroke(); }
+        // loudspeakers: subwoofers as squares with rays, full-range units as trapezoids, each aimed
+        const sub = (x, y) => {
+          c.fillStyle = c.strokeStyle = teal;
+          c.fillRect(x - 17, y - 13, 34, 26);
+          c.lineWidth = 2.4;
+          for (let a = 0; a < 8; a++) {
+            const t = (a * Math.PI) / 4;
+            c.beginPath(); c.moveTo(x + Math.cos(t) * 21, y + Math.sin(t) * 17); c.lineTo(x + Math.cos(t) * 36, y + Math.sin(t) * 30); c.stroke();
+          }
+        };
+        const top = (x, y, r) => {
+          c.save(); c.translate(x, y); c.rotate(r);
+          c.fillStyle = blue;
+          c.beginPath(); c.moveTo(-16, -11); c.lineTo(16, -11); c.lineTo(10, 13); c.lineTo(-10, 13); c.closePath(); c.fill();
+          c.restore();
+        };
+        const runs = [[180, 260], [180, 510], [600, 250], [650, 430]];
+        c.strokeStyle = grey;
+        c.lineWidth = 2.2;
+        runs.forEach(([x, y]) => { c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo((x + 820) / 2, y + 150, 820, 600); c.stroke(); });
+        sub(180, 260); sub(180, 510); sub(600, 250);
+        top(125, 185, -0.7); top(125, 585, 0.7); top(415, 185, 0.7); top(415, 585, -0.7); top(650, 430, Math.PI / 2);
+        // the rack the runs come back to
+        c.fillStyle = "#4b4b46";
+        c.fillRect(800, 585, 60, 34);
+        // numbered callouts on leaders
+        c.font = "600 22px monospace";
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        [[1, 180, 260, 110, 330], [2, 180, 510, 110, 440], [3, 600, 250, 640, 105], [4, 650, 430, 760, 360]].forEach(([n, x, y, cx, cy]) => {
+          c.strokeStyle = ink; c.lineWidth = 1.6;
+          c.beginPath(); c.moveTo(x, y); c.lineTo(cx, cy); c.stroke();
+          c.fillStyle = "#f7f6f1"; c.beginPath(); c.arc(cx, cy, 17, 0, Math.PI * 2); c.fill(); c.stroke();
+          c.fillStyle = ink; c.fillText(String(n), cx, cy + 1);
+        });
+        // a little schematic in the corner: a processor feeding two amplifiers
+        c.strokeStyle = blue; c.lineWidth = 2;
+        c.strokeRect(760, 120, 170, 26);
+        c.strokeRect(740, 220, 90, 22); c.strokeRect(860, 220, 90, 22);
+        c.beginPath(); c.moveTo(800, 146); c.lineTo(800, 180); c.lineTo(785, 180); c.lineTo(785, 220);
+        c.moveTo(890, 146); c.lineTo(890, 180); c.lineTo(905, 180); c.lineTo(905, 220); c.stroke();
+        [760, 800, 880, 920].forEach((x) => { c.beginPath(); c.moveTo(x, 242); c.lineTo(x, 280); c.stroke(); c.strokeRect(x - 16, 280, 32, 20); });
+      });
+      sheetTex.anisotropy = 8;
+      const frontZ = 0.42, rollZ = frontZ - D;
+      const sheetGeo = new THREE.PlaneGeometry(W, D);
+      sheetGeo.rotateX(-Math.PI / 2);
+      mesh(sheetGeo, mat("#f7f6f1", 0.92, 0, { map: sheetTex }), 0, 0.003, frontZ - D / 2, g).castShadow = false;
+      // What the roll gives when pointed at: more of the same paper, growing out from under it.
+      const moreGeo = new THREE.PlaneGeometry(W, GIVE);
+      moreGeo.rotateX(-Math.PI / 2);
+      moreGeo.translate(0, 0, -GIVE / 2);
+      const moreTex = canvasTexture(1024, 80, (c, w, h) => { c.fillStyle = "#f7f6f1"; c.fillRect(0, 0, w, h); frame(c, w, h, false); });
+      const more = mesh(moreGeo, mat("#f7f6f1", 0.92, 0, { map: moreTex }), 0, 0.003, rollZ, g);
+      more.castShadow = false;
+      more.scale.z = 0.001;
+      // the roll: the back of the paper, plain, sitting on the sheet's head
+      const rollR = 0.052;
+      const roll = new THREE.Group();
+      const tube = new THREE.CylinderGeometry(rollR, rollR, W, 32);
+      tube.rotateZ(Math.PI / 2);
+      mesh(tube, mat("#efece3", 0.9), 0, 0, 0, roll);
+      [-1, 1].forEach((s) => {
+        // the ends show the paper wound on itself
+        const end = new THREE.RingGeometry(rollR * 0.35, rollR, 32);
+        end.rotateY((s * Math.PI) / 2);
+        mesh(end, mat("#e2ded2", 0.95, 0, { side: THREE.DoubleSide }), (s * W) / 2 + s * 0.001, 0, 0, roll);
+      });
+      roll.position.set(0, rollR + 0.003, rollZ);
+      g.add(roll);
+      // the patch box: dark steel, four XLR sockets and a label strip, standing on the sheet
+      const box3 = new THREE.Group();
+      const steel = mat("#3b3d40", 0.45, 0.6), socket = mat("#1f2022", 0.4, 0.5), hole = mat("#0d0d0e", 0.9);
+      mesh(box(0.32, 0.13, 0.15), steel, 0, 0, 0, box3);
+      mesh(box(0.28, 0.018, 0.004), mat("#e9e6dc", 0.8), 0, 0.098, 0.076, box3);
+      const sockets = [];
+      for (let i = 0; i < 4; i++) {
+        const x = -0.105 + i * 0.07;
+        const s = mesh(disc(0.024, 0.006), socket, x, 0.052, 0.075, box3);
+        mesh(disc(0.017, 0.002), hole, x, 0.052, 0.081, box3);
+        for (let p = 0; p < 3; p++) {
+          const a = Math.PI / 2 + (p * Math.PI * 2) / 3;
+          mesh(disc(0.003, 0.0015), mat("#b8b8b2", 0.3, 0.9), x + Math.cos(a) * 0.008, 0.052 + Math.sin(a) * 0.008, 0.083, box3);
+        }
+        sockets.push({ x, y: 0.052, z: 0.083, s });
+      }
+      box3.position.set(-0.3, 0.004, -0.13);
+      box3.rotation.y = 0.12;
+      g.add(box3);
+      // the cable: out of the first socket, down to the board, three loose turns, and a loose plug on the sheet
+      const rubber = mat("#1b1b1a", 0.75, 0.05), metal = mat("#c9cbc5", 0.28, 0.9);
+      const at = (v) => v.applyMatrix4(box3.matrixWorld);
+      box3.updateMatrixWorld(true);
+      const out = at(new THREE.Vector3(sockets[0].x, sockets[0].y, sockets[0].z + 0.11));
+      const pts = [out, at(new THREE.Vector3(sockets[0].x, 0.03, sockets[0].z + 0.2)), new THREE.Vector3(-0.05, 0.014, 0.17)];
+      const cx = 0.22, cz = 0.2;
+      for (let k = 0; k <= 30; k++) {
+        const t = k / 30, a = Math.PI * 0.9 + t * Math.PI * 2 * 2.6;
+        const r = 0.12 + 0.012 * Math.sin(t * 9);
+        pts.push(new THREE.Vector3(cx + Math.cos(a) * r, 0.014 + 0.012 * t, cz + Math.sin(a) * r * 0.85));
+      }
+      pts.push(new THREE.Vector3(0.08, 0.014, 0.33), new THREE.Vector3(-0.08, 0.014, 0.3));
+      mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, 0.011, 8, false), rubber, 0, 0, 0, g);
+      // the plug in the box
+      const inPlug = new THREE.Group();
+      mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.08, 20).rotateX(Math.PI / 2).translate(0, 0, 0.04), metal, 0, 0, 0, inPlug);
+      mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.04, 16).rotateX(Math.PI / 2).translate(0, 0, 0.1), rubber, 0, 0, 0, inPlug);
+      inPlug.position.set(sockets[0].x, sockets[0].y, sockets[0].z);
+      box3.add(inPlug);
+      // the loose plug, pointing across the sheet
+      const loose = new THREE.Group();
+      mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.09, 20).rotateZ(Math.PI / 2).translate(-0.045, 0, 0), metal, 0, 0, 0, loose);
+      mesh(new THREE.CylinderGeometry(0.018, 0.012, 0.04, 16).rotateZ(Math.PI / 2).translate(0.02, 0, 0), rubber, 0, 0, 0, loose);
+      for (let p = 0; p < 3; p++) {
+        const a = Math.PI / 2 + (p * Math.PI * 2) / 3;
+        mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.016, 6).rotateZ(Math.PI / 2), metal, -0.098, Math.sin(a) * 0.009, Math.cos(a) * 0.009, loose);
+      }
+      const looseY = 0.024;
+      loose.position.set(-0.1, looseY, 0.3);
+      loose.rotation.y = -0.1;
+      g.add(loose);
+      g.userData.respond = (k) => {
+        roll.position.z = rollZ - GIVE * k;
+        more.scale.z = Math.max(0.001, k);
+        loose.position.y = looseY + 0.05 * k;
+        loose.rotation.z = -0.35 * k;
+      };
+      return g;
+    }
+
+    /* ---- symbolic objects ---- */
+
+    // An early-2000s PC: thick CRT monitor, tower, keyboard and mouse. Seed and Record room share it;
+    // clicking it asks which. The screen lights up on hover.
+    function pc() {
+      const g = new THREE.Group();
+      const shell = mat(PALETTE.beige, 0.62), shellDark = mat(PALETTE.beigeDark, 0.7);
+      const screenTex = canvasTexture(512, 384, (c, w, h) => {
+        c.fillStyle = "#0d100e"; c.fillRect(0, 0, w, h);
+        // Left: a part generator's piano roll; right: two decks. A hint of each project, not a screenshot.
+        c.fillStyle = "#1c211d"; c.fillRect(20, 24, w / 2 - 30, h - 48);
+        for (let i = 0; i < 22; i++) {
+          c.fillStyle = i % 5 === 0 ? "#e8531f" : "#c9784a";
+          c.fillRect(30 + i * 10, 40 + ((i * 37) % 9) * 30, 8 + (i % 3) * 6, 10);
+        }
+        c.fillStyle = "#223040"; c.fillRect(w / 2 + 10, 24, w / 2 - 30, h - 48);
+        c.fillStyle = "#e9e1c9";
+        [[w / 2 + 70, h / 2], [w - 70, h / 2]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 48, 0, Math.PI * 2); c.fill(); });
+        c.fillStyle = "#223040";
+        [[w / 2 + 70, h / 2], [w - 70, h / 2]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.fill(); });
+        c.fillStyle = "rgba(255,255,255,0.05)";
+        for (let y = 0; y < h; y += 4) c.fillRect(0, y, w, 1);
+      });
+      // Monitor.
+      const mon = new THREE.Group();
+      mon.position.set(0.02, 0.05, -0.05);
+      mesh(box(0.46, 0.38, 0.12), shell, 0, 0, 0.1, mon);
+      mesh(box(0.34, 0.3, 0.3), shellDark, 0, 0.03, -0.1, mon);
+      const screenMat = new THREE.MeshStandardMaterial({ map: screenTex, emissive: new THREE.Color("#ffffff"), emissiveMap: screenTex, emissiveIntensity: 0.25, roughness: 0.3 });
+      mesh(new THREE.PlaneGeometry(0.37, 0.28), screenMat, 0, 0.19, 0.161, mon);
+      mesh(box(0.2, 0.05, 0.18), shellDark, 0, -0.05, 0.05, mon);
+      g.add(mon);
+      // Tower.
+      mesh(box(0.2, 0.44, 0.42), shell, -0.4, 0, -0.08, g);
+      [0.36, 0.31].forEach((y) => mesh(box(0.15, 0.035, 0.01), shellDark, -0.4, y, 0.135, g));
+      mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.01, 16).rotateX(Math.PI / 2), mat("#9aa29a", 0.4), -0.4, 0.12, 0.135, g);
+      // Keyboard and mouse.
+      const keysTex = canvasTexture(256, 96, (c, w, h) => {
+        c.fillStyle = "#cfc8b4"; c.fillRect(0, 0, w, h);
+        c.fillStyle = "#e9e3d2";
+        for (let r = 0; r < 5; r++) for (let k = 0; k < 15; k++) c.fillRect(6 + k * 16.4, 8 + r * 17, 13, 13);
+      });
+      mesh(box(0.46, 0.028, 0.16), mat(PALETTE.beige, 0.6, 0, { map: keysTex }), 0.02, 0, 0.32, g);
+      const mouse = new THREE.SphereGeometry(0.035, 16, 10);
+      mouse.scale(0.8, 0.45, 1.2);
+      mouse.translate(0, 0.012, 0);
+      mesh(mouse, shell, 0.34, 0, 0.32, g);
+      g.userData.respond = (k) => { screenMat.emissiveIntensity = 0.25 + 0.95 * k; };
+      return g;
+    }
+
+    // Live BOM: a spreadsheet printout on a board, with wholly fictional sample rows.
+    function ledger() {
+      const g = new THREE.Group();
+      mesh(slab(0.62, 0.02, 0.46, 0.02), mat("#5d6b5a", 0.7), 0, 0, 0, g);
+      const tex = canvasTexture(620, 460, (c, w, h) => {
+        c.fillStyle = PALETTE.paper; c.fillRect(0, 0, w, h);
+        c.fillStyle = PALETTE.ink; c.font = "700 26px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+        c.fillText("LIVE BOM", 28, 44);
+        c.font = "400 14px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+        c.fillStyle = "#6f6c64"; c.fillText("sample sheet", 170, 44);
+        const cols = [28, 250, 360, 470], heads = ["Part", "Qty", "Stock", "Order"];
+        const rows = [["Panel, front", 2, 14, ""], ["Panel, rear", 2, 9, ""], ["Bracket", 8, 40, ""], ["Insert, foam", 4, 6, 10],
+          ["Grille", 2, 3, 5], ["Feet", 4, 32, ""], ["Label set", 1, 12, ""], ["Fixings kit", 1, 7, ""]];
+        c.fillStyle = "#e8531f"; c.fillRect(28, 64, w - 56, 3);
+        c.fillStyle = PALETTE.ink; c.font = "700 15px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+        heads.forEach((t, i) => c.fillText(t, cols[i], 92));
+        c.font = "400 15px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+        rows.forEach((r, j) => {
+          const y = 128 + j * 38;
+          c.fillStyle = j % 2 ? "rgba(31,31,29,0.04)" : "rgba(0,0,0,0)"; c.fillRect(20, y - 24, w - 40, 38);
+          c.fillStyle = PALETTE.ink;
+          r.forEach((v, i) => c.fillText(String(v), cols[i], y));
+        });
+        c.strokeStyle = "rgba(31,31,29,0.15)";
+        cols.slice(1).forEach((x) => { c.beginPath(); c.moveTo(x - 14, 72); c.lineTo(x - 14, h - 30); c.stroke(); });
+      });
+      // Sheets are hinged along their back edge, so the top one lifts like a page.
+      const sheets = [];
+      for (let i = 0; i < 3; i++) {
+        const s = new THREE.Group();
+        s.position.set(0, 0.022 + i * 0.004, -0.2);
+        const geo = new THREE.BoxGeometry(0.56, 0.003, 0.4);
+        geo.translate(0, 0, 0.2);
+        mesh(geo, i === 2 ? mat(PALETTE.paper, 0.9, 0, { map: tex }) : mat("#efede7", 0.95), 0, 0, 0, s);
+        g.add(s);
+        sheets.push(s);
+      }
+      g.userData.respond = (k) => { sheets[2].rotation.x = -0.5 * k; sheets[1].rotation.x = -0.16 * k; };
+      return g;
+    }
+
+    // Field Unit: a record sleeve leaning back with the record half out. Its face is a track's cover put
+    // through the site's green grain (tools/make_sleeve_art.py), drawn dot for dot; without it, the site's
+    // null-set mark is drawn instead.
+    function sleeve(o) {
+      o = o || {};
+      const g = new THREE.Group();
+      const art = o.texture ? (() => {
+        const tex = new THREE.TextureLoader().load(o.texture, () => { if (o.onLoad) o.onLoad(); });
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.magFilter = THREE.NearestFilter;      // square dots, not a blur
+        tex.anisotropy = 4;
+        return tex;
+      })() : canvasTexture(512, 512, (c, w, h) => {
+        c.fillStyle = "#0e100d"; c.fillRect(0, 0, w, h);
+        const ramp = ["#2b331f", "#698246", "#8CAA55", "#E4E2D6"];
+        for (let y = 0; y < h; y += 4) {
+          for (let x = 0; x < w; x += 4) {
+            const dx = (x - w / 2) / (w * 0.5), dy = (y - h * 0.46) / (h * 0.5);
+            const d = Math.hypot(dx * 1.1, dy);
+            const ring = Math.max(0, 1 - Math.abs(d - 0.55) / 0.12);
+            const slash = Math.max(0, 1 - Math.abs(dx * 0.707 + dy * 0.707) / 0.08) * (d < 0.78 ? 1 : 0);
+            const v = Math.max(ring, slash) + ((x * 7 + y * 13) % 17) / 17 * 0.35 - 0.2;
+            if (v > 0.15) { c.fillStyle = ramp[Math.min(3, Math.floor(v * 3.2))]; c.fillRect(x, y, 3, 3); }
+          }
+        }
+        c.fillStyle = "#8CAA55"; c.font = "700 34px 'Courier New', monospace";
+        c.fillText("FIELD UNIT", 30, h - 34);
+      });
+      const board = new THREE.Group();
+      board.rotation.x = -0.2;
+      mesh(box(0.56, 0.56, 0.012), mat("#0e100d", 0.8), 0, 0, 0, board);
+      mesh(new THREE.PlaneGeometry(0.56, 0.56), mat("#ffffff", 0.75, 0, { map: art }), 0, 0.28, 0.0065, board).castShadow = false;
+      const record = new THREE.Group();
+      record.position.set(0.12, 0.3, -0.004);
+      const disc = new THREE.CylinderGeometry(0.26, 0.26, 0.005, 48);
+      disc.rotateX(Math.PI / 2);
+      mesh(disc, mat("#0b0b0b", 0.3), 0, 0, 0, record);
+      const lbl = new THREE.CylinderGeometry(0.075, 0.075, 0.007, 32);
+      lbl.rotateX(Math.PI / 2);
+      mesh(lbl, mat("#8CAA55", 0.6), 0, 0, 0, record);
+      board.add(record);
+      mesh(box(0.1, 0.05, 0.12), mat("#cfc9bd", 0.8), 0, 0, -0.14, g);   // a small block it leans against
+      g.add(board);
+      g.userData.respond = (k) => { record.position.x = 0.12 + 0.12 * k; record.rotation.z = -k * 1.2; };
+      return g;
+    }
+
+    // The embroidered soldier patch: the real photograph as its face, cut to its own outline, with
+    // modest thickness, a fabric-coloured edge and a light stitch texture. Shown on a small stand;
+    // it tilts on hover so the raised stitching catches the light. Illustrative, not a scan.
+    function patch(o) {
+      const g = new THREE.Group();
+      const outline = o.outline || [[0.5, 0], [1, 0.5], [0.5, 1], [0, 0.5]];
+      const size = 0.42, aspect = o.aspect || 1;
+      const shape = new THREE.Shape(outline.map(([u, v]) => new THREE.Vector2((u - 0.5) * size * aspect, (0.5 - v) * size)));
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 4 });
+      // Caps: map the photo by position, so its outline and the mesh's outline match.
+      const pos = geo.attributes.position, uv = geo.attributes.uv;
+      for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / (size * aspect) + 0.5, pos.getY(i) / size + 0.5);
+      const loader = new THREE.TextureLoader();
+      const face = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 });
+      if (o.texture) {
+        face.map = loader.load(o.texture, () => { if (o.onLoad) o.onLoad(); });
+        face.map.colorSpace = THREE.SRGBColorSpace;
+        face.map.anisotropy = 4;
+      }
+      if (o.normalMap) {
+        face.normalMap = loader.load(o.normalMap, () => { if (o.onLoad) o.onLoad(); });
+        face.normalScale = new THREE.Vector2(0.9, 0.9);
+      }
+      const edge = mat(o.edgeColour || "#2c3fa0", 0.95);
+      const holder = new THREE.Group();
+      holder.position.set(0, 0.22, 0.02);
+      holder.rotation.x = -0.32;
+      const p = mesh(geo, [face, edge], 0, 0, 0, holder);
+      p.position.z = -0.012;
+      g.add(holder);
+      // A small wooden stand: scene furniture, not part of the work.
+      const stand = new THREE.Shape();
+      stand.moveTo(-0.14, 0); stand.lineTo(0.14, 0); stand.lineTo(0.14, 0.03); stand.lineTo(-0.14, 0.03);
+      mesh(box(0.34, 0.025, 0.2), mat("#cdb58f", 0.8), 0, 0, 0.0, g);
+      mesh(box(0.3, 0.2, 0.02), mat("#c2a87f", 0.8), 0, 0.02, -0.1, g).rotation.x = -0.32;
+      g.userData.respond = (k, t) => { holder.rotation.x = -0.32 + 0.22 * k; holder.rotation.y = Math.sin(t * 1.6) * 0.18 * k; };
+      return g;
+    }
+
+    // The CV folio: a board with sheets under a clip; the sheets fan on hover.
+    function folio() {
+      const g = new THREE.Group();
+      const doc = canvasTexture(512, 680, (c, w) => {
+        c.fillStyle = "#fbfaf7"; c.fillRect(0, 0, w, 680);
+        c.fillStyle = PALETTE.accent; c.beginPath(); c.arc(56, 70, 13, 0, Math.PI * 2); c.fill();
+        c.fillStyle = PALETTE.ink; c.font = "700 46px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+        c.fillText("James Mason", 44, 150);
+        c.font = "400 22px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+        c.fillStyle = "#6f6c64"; c.fillText("Product design engineer", 46, 186);
+        let y = 240;
+        for (let s = 0; s < 3; s++) {
+          c.fillStyle = "rgba(31,31,29,0.7)"; c.fillRect(44, y, 130, 11);
+          y += 30;
+          for (let l = 0; l < 4; l++) { c.fillStyle = "rgba(31,31,29,0.22)"; c.fillRect(44, y, 240 + ((s * 41 + l * 67) % 170), 7); y += 19; }
+          y += 22;
+        }
+      });
+      mesh(slab(0.5, 0.02, 0.66, 0.035), mat("#d8d4cc", 0.7), 0, 0, 0, g);
+      const sheets = [];
+      for (let i = 0; i < 3; i++) {
+        const s = new THREE.Group();
+        s.position.set(0, 0.022 + i * 0.004, 0.015);
+        mesh(new THREE.BoxGeometry(0.44, 0.002, 0.58), i === 2 ? mat("#ffffff", 0.95, 0, { map: doc }) : mat("#f1efe9", 0.95), 0, 0, 0, s);
+        g.add(s);
+        sheets.push(s);
+      }
+      mesh(slab(0.18, 0.025, 0.06, 0.02), mat("#bdbbb5", 0.35, 0.7), 0, 0.02, -0.27, g);
+      mesh(slab(0.04, 0.006, 0.025, 0.01), mat(PALETTE.accent, 0.6), 0.055, 0.045, -0.26, g);
+      g.userData.respond = (k) => {
+        sheets.forEach((s, i) => {
+          s.rotation.y = k * (i - 1) * 0.13;
+          s.position.x = k * (i - 1) * 0.06;
+          s.position.z = 0.015 + k * (2 - i) * 0.025;
+        });
+      };
+      return g;
+    }
+
+    return { placeholder, eminence, precision, gmtOne, t1210, keyring, plans, pc, ledger, sleeve, patch, folio };
+  }
+
+  window.DeskProps = { builders, PALETTE };
+})();
+
+/* The desk: every project as a miniature object, set out in rows by category like a studio line-up, in one
+   camera and one light. Objects are James's CAD models where they could be converted (tools/step_to_mesh.py)
+   and procedural stand-ins elsewhere (props.js). Every object is fitted to the same display envelope and
+   turned the same way, so the collection reads as one set; a thin rule under each category group carries
+   its name. On a narrow screen the same objects stand on one shelf instead, and the view slides along it.
+   The page draws the labels from the anchor points this scene reports whenever anything moves.
+   Classic script; expects the globals THREE and DeskProps, and the model data in opts.models. Returns null
+   when WebGL is unavailable, so the page can list the projects instead. */
+(function () {
+  "use strict";
+
+  const ACCENT = 0xb2461f;
+  const FOV = 24;                        // a long lens keeps the perspective mild
+  const ELEVATION = { desk: 0.72, shelf: 0.36 };   // camera elevation (radians) looking down at the objects
+  const SLAB = { thick: 0.28, tile: 2.5 };          // the board they stand on; its grid repeats every 2.5 m
+
+  function webglAvailable() {
+    try {
+      const c = document.createElement("canvas");
+      return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl")));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function bytes(b64) {
+    if (typeof b64 !== "string") return b64;          // already binary: the website's packed models
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out.buffer;
+  }
+
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  function start(opts) {
+    const THREE = window.THREE;
+    if (!THREE || !window.DeskProps || !webglAvailable()) return null;
+    const MODEL_DATA = opts.models || {};
+    const stage = opts.stage;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Props that move on their own (Remote Object floats and swings, `userData.idle`) draw at a gentle rate, and
+    // only while the desk is on screen and the page has been used in the last half-minute. With reduced motion
+    // they stay at rest.
+    const IDLE_FPS = 20, IDLE_FOR = 30000;
+    let lastActivity = performance.now(), idleClock = 0, idleDrawn = 0;
+    ["pointermove", "pointerdown", "wheel", "keydown", "touchstart", "scroll"].forEach((type) =>
+      window.addEventListener(type, () => { lastActivity = performance.now(); }, { passive: true }));
+    const damp = THREE.MathUtils.damp;
+    const L = Object.assign({ rows: [], pitch: 1.55, gap: 0.75, rowPitch: 2.55, yaw: 20, footprint: 1.15, height: 1.85 }, opts.layout || {});
+
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch (e) {
+      return null;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.domElement.setAttribute("aria-hidden", "true");
+    stage.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(FOV, 1.6, 0.5, 300);
+    const cam = { target: new THREE.Vector3(0, 0.6, 0), dist: 40, goalTarget: new THREE.Vector3(0, 0.6, 0), goalDist: 40 };
+    let mode = "desk";
+    const VIEW = new THREE.Vector3();
+    const viewFor = (m) => new THREE.Vector3(0, Math.sin(ELEVATION[m]), Math.cos(ELEVATION[m]));
+    VIEW.copy(viewFor(mode));
+
+    /* ---- light: a studio of soft boxes for reflections, a warm key with quiet shadows, a cool fill ----
+       The reflections matter most for the dark finishes (gloss black, graphite, carbon): without something
+       to reflect they read as silhouettes. */
+    {
+      const env = new THREE.Scene();
+      const room = new THREE.Mesh(new THREE.BoxGeometry(24, 14, 24), new THREE.MeshBasicMaterial({ color: 0x6f6c67, side: THREE.BackSide }));
+      room.position.y = 5;
+      env.add(room);
+      const panel = (w, h, x, y, z, rx, ry, level) => {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(level, level, level * 0.97), side: THREE.DoubleSide }));
+        m.position.set(x, y, z);
+        m.rotation.set(rx, ry, 0);
+        env.add(m);
+      };
+      panel(12, 7, 0, 11.9, 0, Math.PI / 2, 0, 3.2);        // overhead soft box
+      panel(7, 6, -11.9, 5, 3, 0, Math.PI / 2, 2.2);          // key side
+      panel(7, 6, 11.9, 5, -3, 0, -Math.PI / 2, 1.1);         // fill side
+      panel(10, 4, 0, 4, 11.9, 0, Math.PI, 1.6);             // behind the camera
+      panel(14, 1.2, 0, 1.2, -11.9, 0, 0, 0.9);              // a low strip behind the desk, for rim light
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(env, 0.035).texture;
+      pmrem.dispose();
+    }
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xcfc9bd, 0.55));
+    const key = new THREE.DirectionalLight(0xfff5e8, 1.7);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.radius = 3;
+    key.shadow.bias = -0.0004;
+    key.shadow.normalBias = 0.02;
+    scene.add(key);
+    scene.add(key.target);
+    const KEY_OFFSET = new THREE.Vector3(-6, 12, 8);
+    const fill = new THREE.DirectionalLight(0xe6edf5, 0.45);
+    fill.position.set(9, 5, 4);
+    scene.add(fill);
+    const back = new THREE.DirectionalLight(0xffffff, 0.55);
+    back.position.set(2, 7, -10);
+    scene.add(back);
+
+    /* ---- the board: a pale slab with a faint cutting-mat grid, rebuilt to fit each arrangement ---- */
+    const gridTex = (() => {
+      const px = 512, lines = SLAB.tile / 0.25;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = px;
+      const g = canvas.getContext("2d");
+      g.fillStyle = "#e9ece2";
+      g.fillRect(0, 0, px, px);
+      for (let i = 0; i < lines; i++) {
+        const at = Math.round((i * px) / lines);
+        g.fillStyle = i === 0 ? "rgba(27,32,27,0.10)" : i % 2 === 0 ? "rgba(27,32,27,0.05)" : "rgba(27,32,27,0.025)";
+        g.fillRect(at, 0, i === 0 ? 2 : 1, px);
+        g.fillRect(0, at, px, i === 0 ? 2 : 1);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      return tex;
+    })();
+    const slabTop = new THREE.MeshStandardMaterial({ map: gridTex, roughness: 0.92 });
+    const slabEdge = new THREE.MeshStandardMaterial({ color: 0xd0d5c6, roughness: 0.8 });
+    const slab = new THREE.Mesh(new THREE.BufferGeometry(), [slabTop, slabEdge]);
+    slab.receiveShadow = true;
+    scene.add(slab);
+    function buildSlab(w, d, cx, cz) {
+      const r = 0.35, x = w / 2, z = d / 2;
+      const s = new THREE.Shape();
+      s.moveTo(-x + r, -z); s.lineTo(x - r, -z); s.quadraticCurveTo(x, -z, x, -z + r); s.lineTo(x, z - r);
+      s.quadraticCurveTo(x, z, x - r, z); s.lineTo(-x + r, z); s.quadraticCurveTo(-x, z, -x, z - r); s.lineTo(-x, -z + r);
+      s.quadraticCurveTo(-x, -z, -x + r, -z);
+      const geo = new THREE.ExtrudeGeometry(s, { depth: SLAB.thick, bevelEnabled: false, curveSegments: 8 });
+      geo.rotateX(Math.PI / 2);   // top face at y = 0, extruded downwards
+      const uv = geo.attributes.uv, pos = geo.attributes.position;
+      // Grid in world units, so it keeps its scale whatever the slab's size.
+      for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + cx) / SLAB.tile, -(pos.getZ(i) + cz) / SLAB.tile);
+      slab.geometry.dispose();
+      slab.geometry = geo;
+      slab.position.set(cx, 0, cz);
+    }
+
+    /* ---- objects ---- */
+    const objects = [];
+    const byId = {};
+    const pickables = [];
+    const FADE_COLOUR = { value: new THREE.Color(0xe3e6dc) };
+
+    function addFade(material, uniform) {
+      material.onBeforeCompile = (shader) => {
+        shader.uniforms.uFade = uniform;
+        shader.uniforms.uFadeColour = FADE_COLOUR;
+        shader.fragmentShader = "uniform float uFade;\nuniform vec3 uFadeColour;\n" + shader.fragmentShader.replace(
+          "#include <dithering_fragment>", "#include <dithering_fragment>\n\tgl_FragColor.rgb = mix(gl_FragColor.rgb, uFadeColour, uFade);");
+      };
+      material.customProgramCacheKey = () => "desk-fade";
+    }
+
+    // CAD colours are the real finishes, and some are near-black. Lift the darkest a little, so on the
+    // light page they show their shape rather than a silhouette; hue and order of tones are kept.
+    function presentable(hex) {
+      const c = new THREE.Color(hex);
+      const hsl = {};
+      c.getHSL(hsl);
+      if (hsl.l < 0.2) c.setHSL(hsl.h, hsl.s, 0.1 + hsl.l * 0.55);
+      return c;
+    }
+
+    function buildModel(modelId, parts) {
+      const data = MODEL_DATA[modelId];
+      if (!data) return null;
+      const holder = new THREE.Group();
+      const materials = {};
+      data.meshes.forEach((m) => {
+        const q = new Int16Array(bytes(m.pos));
+        const pos = new Float32Array(q.length);
+        for (let i = 0; i < q.length; i++) {
+          const axis = i % 3;
+          pos[i] = ((q[i] + 32768) / 65535) * data.extent[axis] + data.min[axis];
+        }
+        const n8 = new Int8Array(bytes(m.nrm));
+        const nrm = new Float32Array(n8.length);
+        for (let i = 0; i < n8.length; i++) nrm[i] = n8[i] / 127;
+        const idx = m.wide ? new Uint32Array(bytes(m.idx)) : new Uint16Array(bytes(m.idx));
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+        geo.setIndex(new THREE.BufferAttribute(idx, 1));
+        const opacity = m.opacity || 1;
+        const k = m.colour + "/" + m.roughness + "/" + m.metalness + "/" + opacity;
+        if (!materials[k]) {
+          materials[k] = new THREE.MeshStandardMaterial({ color: presentable(m.colour), roughness: m.roughness, metalness: m.metalness, side: THREE.DoubleSide });
+          // A see-through part (the cinema's front wall) keeps what is behind it in view.
+          if (opacity < 1) Object.assign(materials[k], { transparent: true, opacity, depthWrite: false });
+        }
+        const mesh = new THREE.Mesh(geo, materials[k]);
+        mesh.castShadow = opacity >= 1;
+        mesh.receiveShadow = true;
+        mesh.userData.explode = new THREE.Vector3().fromArray(m.explode);
+        holder.add(mesh);
+        parts.push(mesh);
+      });
+      return holder;
+    }
+
+    function inkEdges(group) {
+      // Ink outlines, for the object shown as an instruction drawing.
+      const lines = new THREE.LineBasicMaterial({ color: 0x272c26, transparent: true, opacity: 0.55 });
+      group.traverse((o) => {
+        if (o.isMesh) o.add(new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 28), lines));
+      });
+    }
+
+    const span = (o) => o.spec.span || 1;
+    const props = window.DeskProps.builders(THREE);
+    (opts.objects || []).forEach((spec, order) => {
+      const outer = new THREE.Group();
+      const inner = new THREE.Group();
+      outer.add(inner);
+      scene.add(outer);
+      const parts = [];
+      const kind = spec.source.split(":")[0], name = spec.source.split(":")[1];
+      let body = null, respond = null, idle = null;
+      if (kind === "model") {
+        body = buildModel(name, parts);
+      } else if (kind === "prop" && props[name]) {
+        // The patch and the sleeve carry a picture, which arrives after the scene is built: redraw when it does.
+        const picture = { onLoad: () => { dirty = Math.max(dirty, 2); } };
+        const extra = name === "patch" ? Object.assign({}, picture, opts.patch || {})
+          : name === "sleeve" ? Object.assign({}, picture, opts.sleeve || {})
+            : spec.options || {};
+        body = props[name](extra);
+        respond = body.userData.respond || null;
+        idle = body.userData.idle || null;
+      }
+      if (!body) body = props.placeholder({ h: 0.6 });
+      // Fit the object into the common display envelope: one cell wide (or more, for a wide object),
+      // one cell deep and a common height, whichever limit it meets first.
+      const box0 = new THREE.Box3().setFromObject(body);
+      const size0 = box0.getSize(new THREE.Vector3());
+      const fit = spec.fit || {};
+      const envW = (fit.footprint || L.footprint) + (span({ spec }) - 1) * L.pitch;
+      const envD = fit.depth || fit.footprint || L.footprint;
+      const envH = fit.height || L.height;
+      const scale = Math.min(envW / Math.max(size0.x, 1e-6), envD / Math.max(size0.z, 1e-6), envH / Math.max(size0.y, 1e-6));
+      body.scale.setScalar(scale);
+      body.position.set(-(box0.min.x + box0.max.x) / 2 * scale, -box0.min.y * scale, -(box0.min.z + box0.max.z) / 2 * scale);
+      inner.add(body);
+      if (spec.edges) inkEdges(body);
+      let baseY = 0;
+      if (spec.plinth) {
+        // A plain display plinth, for a small speaker among floorstanders: scene furniture, not the product.
+        const pl = spec.plinth;
+        const geo = new THREE.BoxGeometry(pl.width, pl.height, pl.depth);
+        geo.translate(0, pl.height / 2, 0);
+        const plinth = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xd7dbcd, roughness: 0.85 }));
+        plinth.castShadow = true;
+        plinth.receiveShadow = true;
+        outer.add(plinth);
+        baseY = pl.height;
+      }
+      if (spec.wall) {
+        // A section of wall for a speaker that hangs on one, with the speaker on its face at mounting height:
+        // scene furniture, not the product. It catches the speaker's shadow, which shows the two apart.
+        const wl = spec.wall;
+        const t = wl.thickness || 0.06;
+        const face = -(size0.z * scale) / 2;                 // the wall's front, where the speaker hangs
+        const plaster = new THREE.MeshStandardMaterial({ color: 0xe3e6dc, roughness: 0.95 });
+        const geo = new THREE.BoxGeometry(wl.width, wl.height, t);
+        geo.translate(0, wl.height / 2, face - t / 2);
+        const wall = new THREE.Mesh(geo, plaster);
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        outer.add(wall);
+        if (wl.skirting) {
+          // A skirting board along the foot, so the panel reads as a wall rather than a board on a stand.
+          const sk = new THREE.BoxGeometry(wl.width, wl.skirting, t * 0.5);
+          sk.translate(0, wl.skirting / 2, face + t * 0.25);
+          const board = new THREE.Mesh(sk, new THREE.MeshStandardMaterial({ color: 0xd0d4c6, roughness: 0.9 }));
+          board.castShadow = true;
+          board.receiveShadow = true;
+          outer.add(board);
+        }
+        baseY = wl.mount;
+      }
+      inner.position.y = baseY;
+      if (spec.floor) {
+        // A floor under a room, so the cut-away reads as a space: scene furniture, not part of the design.
+        const t = 0.03;
+        const geo = new THREE.BoxGeometry(size0.x * scale + 0.06, t, size0.z * scale + 0.06);
+        geo.translate(0, t / 2, 0);
+        const floor = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: spec.floor, roughness: 0.9 }));
+        floor.receiveShadow = true;
+        inner.add(floor);
+        body.position.y += t;
+      }
+      outer.rotation.y = THREE.MathUtils.degToRad(spec.yaw != null ? spec.yaw : L.yaw);
+      outer.updateMatrixWorld(true);
+
+      const fade = { value: 0 };
+      const seen = new Set();
+      outer.traverse((o) => {
+        if (!o.isMesh) return;
+        o.userData.objectId = spec.id;
+        pickables.push(o);
+        // Tiny details (knobs, cones, feet) cast no visible shadow at this scale: skip them in the shadow pass.
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        if (o.geometry.boundingSphere.radius * scale < 0.05) o.castShadow = false;
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+          if (seen.has(m) || !m.isMeshStandardMaterial) return;
+          seen.add(m);
+          addFade(m, fade);
+        });
+      });
+
+      // The resting box relative to the object's own position, so it can be moved without re-measuring.
+      const restLocal = new THREE.Box3().setFromObject(outer);
+      let headroom = 0;
+      parts.forEach((p) => { headroom = Math.max(headroom, p.userData.explode.y * scale); });
+      const radius = Math.max(restLocal.max.x - restLocal.min.x, restLocal.max.z - restLocal.min.z) * 0.6 + 0.08;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 0.965, radius, 96),
+        new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2;
+      scene.add(ring);
+
+      const obj = {
+        id: spec.id, spec, order, outer, inner, body, parts, respond, idle, fade, ring, scale, restLocal, headroom, baseY,
+        rest: new THREE.Box3(), tagPoint: new THREE.Vector3(), topPoint: new THREE.Vector3(),
+        hover: 0, active: 0, fadeNow: 0, fadeGoal: 0, clock: 0, shown: true
+      };
+      objects.push(obj);
+      byId[spec.id] = obj;
+    });
+
+    function place(o, x, z) {
+      o.outer.position.set(x, 0, z);
+      o.outer.updateMatrixWorld(true);
+      o.rest.copy(o.restLocal).translate(o.outer.position);
+      const c = o.rest.getCenter(new THREE.Vector3());
+      o.tagPoint.set(c.x, 0.02, o.rest.max.z + 0.1);
+      o.topPoint.set(c.x, o.rest.max.y + o.headroom, c.z);
+      o.ring.position.set(c.x, 0.006, c.z);
+    }
+    function show(o, on) {
+      o.shown = on;
+      o.outer.visible = on;
+      o.ring.visible = on;
+    }
+
+    /* ---- arrangements ---- */
+    // The line-up, in reading order: the rows from the layout, each a run of category groups.
+    const rows = L.rows.map((cats) => cats.map((c) => objects.filter((o) => o.spec.region === c)).filter((g) => g.length)).filter((r) => r.length);
+    const listed = new Set(rows.flat(2));
+    const loose = objects.filter((o) => !listed.has(o));
+    if (loose.length) rows.push([loose]);
+    const sequence = rows.flat(2);
+
+    let groups = [];                      // category groups on the desk: rule, label anchor, region
+    const ruleMat = new THREE.MeshBasicMaterial({ color: 0x1b201b, transparent: true, opacity: 0.42, depthWrite: false });
+    function clearGroups() {
+      groups.forEach((g) => { scene.remove(g.rule); g.rule.geometry.dispose(); });
+      groups = [];
+    }
+
+    function arrangeDesk() {
+      clearGroups();
+      const widths = rows.map((row) => row.reduce((w, g) => w + g.reduce((a, o) => a + span(o) * L.pitch, 0), 0) + (row.length - 1) * L.gap);
+      // A window much wider than it is tall would otherwise push the camera back until the desk was a strip
+      // down the middle. The rows close up instead, so the objects keep their size and use the width.
+      const pitchZ = L.rowPitch * rowSqueeze();
+      const z0 = -((rows.length - 1) / 2) * pitchZ;
+      rows.forEach((row, r) => {
+        let x = -widths[r] / 2;
+        const z = z0 + r * pitchZ;
+        row.forEach((g) => {
+          const x0 = x;
+          g.forEach((o) => {
+            const w = span(o) * L.pitch;
+            place(o, x + w / 2, z);
+            show(o, true);
+            x += w;
+          });
+          // A thin rule in front of the group, printed on the board, with the category's name at its start.
+          const front = Math.max(...g.map((o) => o.rest.max.z)) + 0.28;
+          const len = x - x0 - 0.2;
+          const geo = new THREE.PlaneGeometry(len, 0.016);
+          geo.rotateX(-Math.PI / 2);
+          const rule = new THREE.Mesh(geo, ruleMat.clone());
+          rule.position.set(x0 + 0.1 + len / 2, 0.004, front);
+          scene.add(rule);
+          groups.push({ region: g[0].spec.region, rule, anchor: new THREE.Vector3(x0 + 0.1, 0.004, front), fade: 0 });
+          x += L.gap;
+        });
+      });
+      const w = Math.max(...widths) + 2.4;
+      const d = rows.length * pitchZ + 1.2;
+      buildSlab(w, d, 0, 0.25);
+      Object.assign(key.shadow.camera, { left: -w / 2 - 1, right: w / 2 + 1, top: d / 2 + 2, bottom: -d / 2 - 2, near: 2, far: 50 });
+      key.shadow.camera.updateProjectionMatrix();
+      moveKey(0);
+    }
+
+    const shelf = { list: [], pos: 0, goal: 0, fits: [], drag: null, focus: -1 };
+    function arrangeShelf() {
+      clearGroups();
+      shelf.list = sequence.filter((o) => !region || o.spec.region === region);
+      let x = 0;
+      sequence.forEach((o) => show(o, false));
+      shelf.list.forEach((o) => {
+        const w = span(o) * L.pitch;
+        place(o, x + w / 2, 0);
+        show(o, true);
+        x += w;
+      });
+      buildSlab(x + 1.4, L.footprint + 1.5, x / 2, 0.2);
+      Object.assign(key.shadow.camera, { left: -7, right: 7, top: 5, bottom: -5, near: 2, far: 50 });
+      key.shadow.camera.updateProjectionMatrix();
+      shelf.goal = shelf.pos = 0;
+      shelf.focus = -1;
+      shelfFits();
+    }
+    // Keep the shadow's frustum over what's in view as the camera slides along the shelf.
+    function moveKey(x) {
+      key.position.copy(KEY_OFFSET).setX(KEY_OFFSET.x + x);
+      key.target.position.set(x, 0, 0);
+      key.target.updateMatrixWorld();
+    }
+
+    /* ---- camera framing ---- */
+    let W = 0, H = 0, dirty = 3, snap = true, paused = false;
+    let hovered = null, selected = null, region = null;
+    let margins = { top: 0.12, bottom: 0.12, left: 0.03, right: 0.03 };
+    const camRight = new THREE.Vector3(), camUp = new THREE.Vector3(), v = new THREE.Vector3();
+
+    function boundsOf(list) {
+      const pts = [];
+      list.forEach((o) => {
+        const b = o.rest;
+        [b.min.x, b.max.x].forEach((x) => [b.min.y, b.max.y + o.headroom].forEach((y) => [b.min.z, b.max.z + 0.3].forEach((z) => pts.push(new THREE.Vector3(x, y, z)))));
+      });
+      return pts;
+    }
+
+    // Find the target and distance that fit the points inside the margins, for the fixed view direction.
+    function fit(points, m) {
+      const target = new THREE.Vector3();
+      points.forEach((p) => target.add(p));
+      target.multiplyScalar(1 / Math.max(1, points.length));
+      let dist = 30;
+      const probe = camera.clone();
+      probe.aspect = W / H;
+      probe.updateProjectionMatrix();
+      const halfTan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+      for (let it = 0; it < 14; it++) {
+        probe.position.copy(target).addScaledVector(VIEW, dist);
+        probe.lookAt(target);
+        probe.updateMatrixWorld(true);
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        points.forEach((p) => {
+          v.copy(p).project(probe);
+          x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
+        });
+        const availW = 2 - 2 * (m.left + m.right), availH = 2 - 2 * (m.top + m.bottom);
+        const s = Math.max((x1 - x0) / availW, (y1 - y0) / availH);
+        const cx = (x0 + x1) / 2 - (m.left - m.right), cy = (y0 + y1) / 2 - (m.bottom - m.top);
+        camRight.setFromMatrixColumn(probe.matrixWorld, 0);
+        camUp.setFromMatrixColumn(probe.matrixWorld, 1);
+        const halfH = dist * halfTan, halfW = halfH * probe.aspect;
+        target.addScaledVector(camRight, cx * halfW).addScaledVector(camUp, cy * halfH);
+        dist *= clamp(s, 0.5, 2);
+      }
+      return { target, dist };
+    }
+
+    function frameGoal() {
+      if (mode === "shelf") return;
+      const list = region ? objects.filter((o) => o.spec.region === region) : objects;
+      const f = fit(boundsOf(list.length ? list : objects), margins);
+      cam.goalTarget.copy(f.target);
+      cam.goalDist = f.dist;
+    }
+
+    // On the shelf, each object has its own framing; between two, the camera blends their framings.
+    function shelfFits() {
+      if (W < 2) return;
+      const m = opts.shelfMargins ? opts.shelfMargins(W, H) : { top: 0.12, bottom: 0.2, left: 0.2, right: 0.2 };
+      shelf.fits = shelf.list.map((o) => fit(boundsOf([o]), m));
+      // Keep neighbours to one scale, so sliding between a tall object and a flat one doesn't pump the zoom.
+      const far = Math.max(...shelf.fits.map((f) => f.dist));
+      shelf.fits.forEach((f) => { f.dist = Math.max(f.dist, far * 0.72); });
+    }
+    function shelfFrame(pos) {
+      const n = shelf.fits.length;
+      const p = clamp(pos, 0, n - 1);
+      const i = Math.min(n - 2, Math.floor(p)), t = n > 1 ? p - i : 0;
+      const a = shelf.fits[Math.max(0, i)], b = shelf.fits[Math.max(0, Math.min(n - 1, i + 1))];
+      const target = a.target.clone().lerp(b.target, t);
+      // Past either end the view keeps sliding a little, so a drag there still answers the finger.
+      if (pos < 0 || pos > n - 1) target.x += (pos - p) * L.pitch;
+      return { target, dist: a.dist + (b.dist - a.dist) * t };
+    }
+    function slotPx() {
+      const d = cam.dist || 10;
+      return (L.pitch * H) / (2 * d * Math.tan(THREE.MathUtils.degToRad(FOV / 2)));
+    }
+
+    // 1 at the proportions the desk was drawn for; less as the stage gets wider and shorter.
+    const DESK_ASPECT = 2.9;
+    function rowSqueeze() {
+      return H > 1 ? clamp(DESK_ASPECT / (W / H), 0.62, 1) : 1;
+    }
+
+    let arranged = false, squeezed = 1;
+    function setMode(next) {
+      const squeeze = rowSqueeze();
+      // Re-lay the desk when the rows would sit noticeably closer or further apart than they do now.
+      if (arranged && next === mode && (mode === "shelf" || Math.abs(squeeze - squeezed) < 0.035)) return;
+      squeezed = squeeze;
+      arranged = true;
+      mode = next;
+      VIEW.copy(viewFor(mode));
+      if (mode === "shelf") arrangeShelf(); else arrangeDesk();
+      applyRegionFade();
+      snap = true;
+    }
+
+    function layout() {
+      W = stage.clientWidth;
+      H = stage.clientHeight;
+      if (W < 2 || H < 2) return;
+      renderer.setSize(W, H, false);
+      camera.aspect = W / H;
+      camera.updateProjectionMatrix();
+      margins = opts.margins ? opts.margins(W, H) : margins;
+      setMode(opts.mode ? opts.mode(W, H) : "desk");
+      if (mode === "shelf") shelfFits(); else frameGoal();
+      dirty = Math.max(dirty, 2);
+    }
+
+    /* ---- picking and the shelf's drag ---- */
+    const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
+    function pick(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(pickables, false);
+      for (const hit of hits) {
+        const o = byId[hit.object.userData.objectId];
+        if (o && o.shown && o.fadeGoal < 0.5) return o.id;
+      }
+      return null;
+    }
+    const canvas = renderer.domElement;
+    let pointerId = null, downAt = null, lastMove = null;
+    canvas.addEventListener("pointermove", (e) => {
+      if (e.pointerType !== "touch") lastMove = e;
+      const d = shelf.drag;
+      if (mode !== "shelf" || !d || e.pointerId !== d.id) return;
+      const dx = e.clientX - d.x;
+      if (!d.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - d.y)) {
+        d.moved = true;
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
+      }
+      if (!d.moved) return;
+      const now = performance.now();
+      d.v = (e.clientX - d.lastX) / Math.max(1, now - d.lastT);
+      d.lastX = e.clientX;
+      d.lastT = now;
+      shelf.pos = clamp(d.pos - dx / slotPx(), -0.35, shelf.list.length - 0.65);
+      dirty = Math.max(dirty, 1);
+    });
+    canvas.addEventListener("pointerleave", () => {
+      lastMove = null;
+      if (pointerId) {
+        pointerId = null;
+        opts.onHover(null);
+      }
+    });
+    canvas.addEventListener("pointerdown", (e) => {
+      downAt = [e.clientX, e.clientY];
+      if (mode === "shelf") shelf.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, pos: shelf.pos, moved: false, v: 0, lastX: e.clientX, lastT: performance.now() };
+    });
+    function endDrag() {
+      const d = shelf.drag;
+      shelf.drag = null;
+      if (!d || !d.moved) return false;
+      // A flick carries on to the next object; a slow drag settles on the nearest.
+      const carry = Math.abs(d.v) > 0.35 ? -Math.sign(d.v) * 0.5 : 0;
+      shelf.goal = clamp(Math.round(shelf.pos + carry), 0, shelf.list.length - 1);
+      dirty = Math.max(dirty, 1);
+      return true;
+    }
+    canvas.addEventListener("pointercancel", endDrag);
+    canvas.addEventListener("pointerup", (e) => {
+      if (endDrag()) { downAt = null; return; }
+      if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 8) return;
+      downAt = null;
+      opts.onPick(pick(e), e.pointerType || "mouse", { x: e.clientX, y: e.clientY });
+    });
+
+    new ResizeObserver(layout).observe(stage);
+    let onScreen = true;
+    new IntersectionObserver((entries) => {
+      onScreen = entries[0].isIntersecting;
+      if (onScreen) dirty = Math.max(dirty, 1);
+    }).observe(stage);
+
+    function applyRegionFade() {
+      objects.forEach((o) => { o.fadeGoal = mode === "desk" && region && o.spec.region !== region ? 1 : 0; });
+    }
+
+    layout();
+
+    /* ---- per frame ---- */
+    function report() {
+      if (!opts.onFrame) return;
+      const anchors = {};
+      objects.forEach((o) => {
+        v.copy(o.tagPoint).project(camera);
+        const x = ((v.x + 1) / 2) * W, y = ((1 - v.y) / 2) * H;
+        v.copy(o.topPoint).project(camera);
+        const top = ((1 - v.y) / 2) * H, topX = ((v.x + 1) / 2) * W;
+        anchors[o.id] = { x, y, top, topX, faded: !o.shown || o.fadeGoal > 0.5, inView: o.shown && x > -40 && x < W + 40 && y > -20 && y < H + 40 };
+      });
+      const labels = groups.map((g) => {
+        v.copy(g.anchor).project(camera);
+        return { region: g.region, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, faded: g.fade > 0.5 };
+      });
+      const focus = mode === "shelf" && shelf.list.length ? shelf.list[clamp(Math.round(shelf.pos), 0, shelf.list.length - 1)] : null;
+      opts.onFrame({ width: W, height: H, mode, anchors, groups: labels, focus: focus ? focus.id : null,
+        shelf: mode === "shelf" ? { index: shelf.list.indexOf(focus), count: shelf.list.length } : null });
+    }
+
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      if (lastMove && !paused && !shelf.drag) {
+        const id = pick(lastMove);
+        canvas.style.cursor = id ? "pointer" : mode === "shelf" ? "grab" : "default";
+        if (id !== pointerId) {
+          pointerId = id;
+          opts.onHover(id);
+        }
+        lastMove = null;
+      }
+      if (!paused && onScreen && !document.hidden && W > 1) {
+        const still = reduced.matches, quick = still || snap;
+        let moving = dirty > 0;
+        if (mode === "shelf" && shelf.fits.length) {
+          if (!shelf.drag) {
+            const p = quick ? shelf.goal : damp(shelf.pos, shelf.goal, 7, dt);
+            if (Math.abs(p - shelf.pos) > 1e-4) moving = true;
+            shelf.pos = Math.abs(p - shelf.goal) < 1e-4 ? shelf.goal : p;
+          } else {
+            moving = true;
+          }
+          const f = shelfFrame(shelf.pos);
+          cam.goalTarget.copy(f.target);
+          cam.goalDist = f.dist;
+          cam.target.copy(f.target);
+          cam.dist = f.dist;
+          moveKey(f.target.x);
+        } else {
+          const lambda = 4.5;
+          const nd = quick ? cam.goalDist : damp(cam.dist, cam.goalDist, lambda, dt);
+          const tx = quick ? cam.goalTarget.x : damp(cam.target.x, cam.goalTarget.x, lambda, dt);
+          const ty = quick ? cam.goalTarget.y : damp(cam.target.y, cam.goalTarget.y, lambda, dt);
+          const tz = quick ? cam.goalTarget.z : damp(cam.target.z, cam.goalTarget.z, lambda, dt);
+          if (Math.abs(nd - cam.dist) + Math.abs(tx - cam.target.x) + Math.abs(ty - cam.target.y) + Math.abs(tz - cam.target.z) > 1e-4) moving = true;
+          cam.dist = nd;
+          cam.target.set(tx, ty, tz);
+        }
+        camera.position.copy(cam.target).addScaledVector(VIEW, cam.dist);
+        camera.lookAt(cam.target);
+        camera.updateMatrixWorld();
+
+        objects.forEach((o) => {
+          if (!o.shown) return;
+          const on = o.id === hovered || o.id === selected;
+          const h = damp(o.hover, on ? 1 : 0, still ? 60 : 5, dt);
+          const f = quick ? o.fadeGoal : damp(o.fadeNow, o.fadeGoal, 4, dt);
+          if (Math.abs(h - o.hover) + Math.abs(f - o.fadeNow) > 1e-4) moving = true;
+          o.hover = h;
+          o.fadeNow = f;
+          o.fade.value = f * 0.72;
+          const k = still ? 0 : ease(Math.min(1, h));
+          if (h > 0.001 && !still) {
+            o.clock += dt;
+            moving = true;           // continuous responses (platter, needle) keep drawing while hovered
+          }
+          const response = o.spec.response || (o.respond ? "prop" : "explode");
+          if (response === "explode") o.parts.forEach((m) => m.position.copy(m.userData.explode).multiplyScalar(k));
+          if (response === "turn") o.inner.rotation.y = THREE.MathUtils.degToRad(o.spec.turn || 25) * k;
+          if (response === "lift") { o.inner.position.y = o.baseY + 0.06 * k; o.inner.rotation.x = -0.05 * k; }
+          // A wall-mounted speaker eases off its wall, so the gap and its shadow show.
+          if (response === "mount") { o.inner.position.y = o.baseY + 0.02 * k; o.inner.position.z = 0.09 * k; }
+          if (o.respond) o.respond(k, o.clock);
+          o.ring.material.opacity = Math.max(h * 0.9, o.id === selected ? 0.9 : 0) * (1 - f);
+        });
+        // Idle motion: a step every 1/IDLE_FPS s while the page is in use, and every frame while the object is
+        // pointed at (its response turns it). Nothing with reduced motion: it keeps its resting pose.
+        if (!still) {
+          const awake = now - lastActivity < IDLE_FOR;
+          if (awake) idleClock += dt;
+          const due = awake && now - idleDrawn >= 1000 / IDLE_FPS;
+          objects.forEach((o) => {
+            if (!o.idle || !o.shown || !(due || o.hover > 0.001)) return;
+            o.idle(idleClock);
+            moving = true;
+          });
+          if (due) idleDrawn = now;
+        }
+        groups.forEach((g) => {
+          const goal = region && g.region !== region ? 1 : 0;
+          const f = quick ? goal : damp(g.fade, goal, 4, dt);
+          if (Math.abs(f - g.fade) > 1e-4) moving = true;
+          g.fade = f;
+          g.rule.material.opacity = 0.42 * (1 - f * 0.8);
+        });
+        snap = false;
+        if (moving) {
+          renderer.render(scene, camera);
+          report();
+          if (dirty > 0) dirty -= 1;
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    return {
+      objects: objects.map((o) => o.id),
+      get mode() { return mode; },
+      setHover(id) { hovered = byId[id] ? id : null; dirty = Math.max(dirty, 1); },
+      setSelected(id) {
+        selected = byId[id] ? id : null;
+        if (selected) this.showObject(selected);
+        dirty = Math.max(dirty, 1);
+      },
+      // On the shelf, slide to an object (when it is selected, or its label gets keyboard focus); `now` puts it in
+      // front at once (the desk coming back as it was left).
+      showObject(id, now) {
+        if (mode !== "shelf") return;
+        const i = shelf.list.indexOf(byId[id]);
+        if (i >= 0) { shelf.goal = i; if (now) snap = true; dirty = Math.max(dirty, 1); }
+      },
+      step(delta) {
+        if (mode !== "shelf" || !shelf.list.length) return;
+        shelf.goal = clamp(Math.round(shelf.goal) + delta, 0, shelf.list.length - 1);
+        dirty = Math.max(dirty, 1);
+      },
+      setRegion(id) {
+        region = id || null;
+        if (mode === "shelf") {
+          arrangeShelf();
+          snap = true;
+        }
+        applyRegionFade();
+        frameGoal();
+        dirty = Math.max(dirty, 2);
+      },
+      setPaused(value) {
+        paused = !!value;
+        if (!paused) { layout(); dirty = Math.max(dirty, 2); }
+      },
+      relayout() { layout(); },
+      // Rendering figures for the README's measurements (draw calls and triangles of the last frame).
+      stats() {
+        const info = renderer.info;
+        return { calls: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures, pixelRatio: renderer.getPixelRatio() };
+      }
+    };
+  }
+
+  window.DeskScene = { start };
+})();

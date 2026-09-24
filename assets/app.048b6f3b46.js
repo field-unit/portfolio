@@ -1273,13 +1273,23 @@ window.DeskTitle = (function () {
     }
   });
 
-  /* ---- the 3D desk, loaded when it is first shown; a plain list when it can't be ---- */
-  function fallback(message) {
+  /* ---- the 3D desk, loaded when it is first shown; a plain list when it can't be (or would crawl) ---- */
+  // `message` says why; with `offer`, the reason is software rendering and the note offers the desk anyway.
+  function fallback(message, offer) {
     document.body.classList.add("no-3d");
     stage.querySelectorAll("canvas").forEach((c) => c.remove());
-    $("deck-note").textContent = message;
+    if (offer) root.classList.add("slow-3d");
+    else $("deck-note").replaceChildren(text(message));
     indexGroups($("fallback-index"), 3, false);
   }
+  const anyway = $("desk-anyway");
+  if (anyway) anyway.addEventListener("click", () => {
+    root.classList.remove("slow-3d");
+    document.body.classList.remove("no-3d");
+    deskLoad = null;
+    ensureDesk(true);
+    window.scrollTo(0, 0);
+  });
 
   const sleeveSpec = (data.desk && data.desk.sleeve) || null;
   const sleeve = sleeveSpec && media[sleeveSpec.texture] ? { texture: media[sleeveSpec.texture].src } : null;
@@ -1293,10 +1303,11 @@ window.DeskTitle = (function () {
     };
   }
 
-  function webglAvailable() {
+  // With `fast`, only WebGL with graphics acceleration counts (not software rendering).
+  function webglAvailable(fast) {
     try {
-      const c = document.createElement("canvas");
-      const gl = window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl"));
+      const c = document.createElement("canvas"), o = { failIfMajorPerformanceCaveat: !!fast };
+      const gl = window.WebGLRenderingContext && (c.getContext("webgl2", o) || c.getContext("webgl", o));
       if (!gl) return false;
       const lose = gl.getExtension("WEBGL_lose_context");
       if (lose) lose.loseContext();                      // only a test: give the context back
@@ -1409,12 +1420,20 @@ window.DeskTitle = (function () {
     }).observe(stage);
   }
 
-  let deskLoad = null;
-  function ensureDesk() {
+  let deskLoad = null, deskAsked = false;
+  function ensureDesk(force) {
     if (deskLoad) return;
-    if (!webglAvailable()) {
+    // On the desk's own page the first lines asked already, before anything was drawn (slow-3d); coming to the desk
+    // from another page, ask now. `force`: the "show the desk anyway" button.
+    let fast;
+    if (force) fast = true;
+    else if (root.hasAttribute("data-home") && !deskAsked) fast = !root.classList.contains("slow-3d");
+    else fast = webglAvailable(true);
+    deskAsked = true;
+    if (!fast) {
       deskLoad = Promise.resolve();
-      fallback("The 3D desk isn't available in this browser, so every project is listed below.");
+      if (webglAvailable(false)) fallback(null, true);
+      else fallback("The 3D desk isn't available in this browser, so every project is listed below.");
       return;
     }
     deskLoad = Promise.all([loadDeskCode(), loadModels()]).then(([, models]) => startScene(models)).catch((e) => {

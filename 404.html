@@ -10,7 +10,20 @@
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<script>document.documentElement.className = document.documentElement.className.replace("no-js", "js");</script>
+<script>
+(function (d) {
+  d.className = d.className.replace("no-js", "js");
+  // On the desk's page: would 3D be drawn without a graphics card (software rendering)? Then the desk would crawl,
+  // so the page shows the project list from the start, with a button to show the desk anyway (app.js).
+  if (!d.hasAttribute("data-home")) return;
+  try {
+    var c = document.createElement("canvas"), o = { failIfMajorPerformanceCaveat: true };
+    var gl = c.getContext("webgl2", o) || c.getContext("webgl", o);
+    if (!gl) d.className += " slow-3d";
+    else if (gl.getExtension("WEBGL_lose_context")) gl.getExtension("WEBGL_lose_context").loseContext();
+  } catch (e) {}
+})(document.documentElement);
+</script>
 
 <style>
 /* Desk portfolio — calm and functional, like a drawing office: squared paper, graphite type set in the
@@ -95,6 +108,9 @@ body[data-view="desk"] .top { justify-content: flex-end; }
 .projection { position: relative; display: inline-block; max-width: 100%; vertical-align: top; }
 /* The frame is drawn a dot per canvas pixel and blown up square (title.js); a faint green light spills round it. */
 .title { display: block; max-width: 100%; margin: 0 auto; image-rendering: pixelated; filter: drop-shadow(0 0 16px rgba(140, 170, 85, 0.3)); }
+/* Its size before title.js gives it one (the same sums: 9.2% of the window's height, 46–104 px, 6.9 times as wide, no
+   wider than the column), so nothing below it moves when the name is drawn. */
+.title:not([style]) { width: min(calc(100vw - 2 * var(--gutter)), calc(clamp(46px, 9.2vh, 104px) * 6.9)); height: auto; aspect-ratio: 6.9; }
 .projection__pause {
   position: absolute; right: 0.4rem; bottom: 0.4rem; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; padding: 0;
   border: 1px solid rgba(140, 170, 85, 0.6); border-radius: 2px; background: rgba(14, 16, 13, 0.75); color: #8caa55; opacity: 0.6;
@@ -196,9 +212,12 @@ body[data-view="desk"] .top { justify-content: flex-end; }
 
 /* No JavaScript, or no WebGL: the name as plain type, a line saying why, and every project listed below instead
    of the desk. Each project still has its own page. */
-body.no-3d .stage, body.no-3d .filters, .no-js .stage, .no-js .filters, .no-js .projection { display: none; }
+body.no-3d .stage, body.no-3d .filters, .no-js .stage, .no-js .filters, .no-js .projection, .slow-3d .stage, .slow-3d .filters { display: none; }
 .deck__note { display: none; padding: 0.9rem var(--gutter) 1.1rem; text-align: center; font: var(--label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.no-js .deck__note, body.no-3d .deck__note { display: block; }
+.no-js .deck__note, body.no-3d .deck__note, .slow-3d .deck__note { display: block; }
+.deck__why--slow, .js .deck__why--nojs { display: none; }
+.slow-3d .deck__why--slow { display: inline; }
+.deck__anyway { margin-left: 0.4rem; }
 .no-js #desk-title { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; white-space: normal; font: 500 1.6rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
 
 /* ---- reading: the desk steps aside for a slim bar ---- */
@@ -217,7 +236,7 @@ body:not([data-view="desk"]) .readbar {
 
 /* ---- the index, and the plain list shown in place of the desk when there is no WebGL ---- */
 .desk, .index { padding-block: 2.2rem 3rem; }
-.js body:not(.no-3d) #desk-view { display: none; }
+.js:not(.slow-3d) body:not(.no-3d) #desk-view { display: none; }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.3rem; }
 .section-head :is(h1, h2) { font: 500 0.82rem/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
 .section-head--large :is(h1, h2) { font: 500 clamp(1.1rem, 0.9rem + 0.7vw, 1.5rem)/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
